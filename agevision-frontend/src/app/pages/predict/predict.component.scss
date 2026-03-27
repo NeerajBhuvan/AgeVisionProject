@@ -1,0 +1,625 @@
+/* ─── Mode Tabs ─── */
+.mode-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 4px;
+  width: fit-content;
+}
+
+.mode-tab {
+  padding: 10px 24px;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.25s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &:hover {
+    color: var(--text);
+    background: rgba(127, 90, 240, 0.06);
+  }
+
+  &.active {
+    color: var(--accent1);
+    background: rgba(127, 90, 240, 0.12);
+    box-shadow: 0 2px 8px rgba(127, 90, 240, 0.1);
+  }
+}
+
+/* ─── Grid Layout ─── */
+.pred-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.pred-left, .pred-right {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ─── Upload Dropzone ─── */
+.upload-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  border: 2px dashed rgba(127, 90, 240, 0.25);
+  border-radius: 14px;
+  background: var(--drop-bg);
+  cursor: pointer;
+  transition: background 0.25s, border-color 0.25s;
+  text-align: center;
+
+  &:hover, &.dragging {
+    background: var(--drop-hover-bg);
+    border-color: rgba(127, 90, 240, 0.45);
+  }
+}
+
+.drop-icon {
+  width: 48px; height: 48px; border-radius: 14px;
+  background: rgba(127, 90, 240, 0.15);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem; margin-bottom: 12px;
+  color: var(--accent1);
+}
+
+.drop-title {
+  font-size: 0.9rem; font-weight: 600; margin-bottom: 4px;
+  color: var(--text) !important;
+}
+
+.drop-sub {
+  font-size: 0.75rem;
+  color: var(--muted) !important;
+}
+
+.drop-formats {
+  display: flex; gap: 8px; margin-top: 14px;
+}
+
+/* ─── Image Preview ─── */
+.pred-preview {
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+}
+
+.pred-image-wrapper {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+  max-width: 100%;
+
+  img {
+    max-width: 100%;
+    max-height: 400px;
+    display: block;
+  }
+}
+
+/* ─── Face Bounding Boxes (Upload) ─── */
+.face-bbox-dynamic {
+  position: absolute;
+  border: 2px solid rgba(127, 90, 240, 0.6);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.25s;
+  box-shadow: 0 0 12px rgba(127, 90, 240, 0.1);
+
+  &:hover, &.active {
+    border-color: rgba(127, 90, 240, 1);
+    box-shadow: 0 0 20px rgba(127, 90, 240, 0.35);
+  }
+
+  &.active .face-id-label {
+    background: var(--accent1);
+  }
+}
+
+.face-id-label {
+  position: absolute;
+  top: -10px;
+  left: -1px;
+  background: rgba(127, 90, 240, 0.75);
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  line-height: 1.4;
+}
+
+/* ─── Camera Mode ─── */
+.cam-start-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  border: 2px dashed rgba(127, 90, 240, 0.25);
+  border-radius: 14px;
+  background: var(--drop-bg);
+  cursor: pointer;
+  transition: background 0.25s, border-color 0.25s;
+  text-align: center;
+
+  &:hover {
+    background: var(--drop-hover-bg);
+    border-color: rgba(127, 90, 240, 0.45);
+  }
+}
+
+.cam-icon {
+  width: 56px; height: 56px; border-radius: 16px;
+  background: rgba(127, 90, 240, 0.15);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.6rem; margin-bottom: 14px;
+  color: var(--accent1);
+}
+
+.cam-title {
+  font-size: 1rem; font-weight: 700; margin-bottom: 4px;
+  color: var(--text);
+}
+
+.cam-sub {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.cam-selector {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--glass-border);
+}
+
+.cam-selector-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cam-selector-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Camera Feed */
+.cam-feed {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+
+  video {
+    width: 100%;
+    display: block;
+    border-radius: 12px;
+    transform: scaleX(-1);
+  }
+}
+
+/* Face Bounding Boxes (Camera) */
+.cam-face-bbox {
+  position: absolute;
+  border: 2px solid rgba(0, 255, 136, 0.8);
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 16px rgba(0, 255, 136, 0.2);
+}
+
+.cam-face-label {
+  position: absolute;
+  top: -24px;
+  left: 0;
+  background: rgba(0, 0, 0, 0.75);
+  color: #00ff88;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  font-family: "Space Mono", monospace;
+  backdrop-filter: blur(8px);
+}
+
+.live-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(239, 68, 68, 0.9);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  backdrop-filter: blur(8px);
+  letter-spacing: 1px;
+}
+
+.live-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #fff;
+  animation: pulse-dot 1.2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+
+.predicting-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(127, 90, 240, 0.9);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  backdrop-filter: blur(8px);
+}
+
+.spinner-sm {
+  width: 12px; height: 12px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.cam-controls {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.btn-accent {
+  background: rgba(127, 90, 240, 0.15);
+  border: 1px solid rgba(127, 90, 240, 0.3);
+  color: var(--accent1);
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.82rem;
+
+  &:hover {
+    background: rgba(127, 90, 240, 0.25);
+  }
+}
+
+.btn-danger {
+  color: #ef4444 !important;
+  border-color: rgba(239, 68, 68, 0.25) !important;
+
+  &:hover {
+    background: rgba(239, 68, 68, 0.1) !important;
+  }
+}
+
+/* ─── Face List (Group) ─── */
+.face-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.face-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface);
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: rgba(127, 90, 240, 0.2);
+  }
+
+  &.active {
+    border-color: var(--accent1);
+    background: rgba(127, 90, 240, 0.08);
+  }
+}
+
+.fli-id {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: rgba(127, 90, 240, 0.15);
+  color: var(--accent1);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.75rem; font-weight: 700; flex-shrink: 0;
+}
+
+.fli-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.fli-age {
+  font-size: 0.85rem; font-weight: 700; color: var(--text);
+}
+
+.fli-meta {
+  font-size: 0.68rem; color: var(--muted); text-transform: capitalize;
+}
+
+.fli-conf {
+  font-size: 0.78rem; font-weight: 600;
+  color: var(--accent1);
+  font-family: "Space Mono", monospace;
+}
+
+/* ─── Model Pill ─── */
+.mpill {
+  padding: 8px 16px;
+  border-radius: 100px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover, &.active {
+    background: rgba(127, 90, 240, 0.15);
+    border-color: rgba(127, 90, 240, 0.3);
+    color: var(--accent1);
+  }
+}
+
+/* ─── Empty State ─── */
+.pred-empty {
+  text-align: center;
+  padding: 30px 0;
+  color: var(--muted);
+}
+
+/* ─── Big Result Number ─── */
+.result-big-number {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.rbn {
+  font-size: 5rem;
+  font-weight: 800;
+  font-family: "Space Mono", monospace;
+  background: linear-gradient(135deg, var(--accent1), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+}
+
+.rbn-label {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* ─── Age Range ─── */
+.age-range-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  text-align: center;
+}
+
+.age-range-item {
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.ar-label {
+  font-size: 0.68rem;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.ar-val {
+  font-size: 1.1rem;
+  font-weight: 700;
+  font-family: "Space Mono", monospace;
+  color: var(--text);
+
+  &.highlight { color: var(--accent1); }
+}
+
+/* ─── Sample Images ─── */
+.sample-sub {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+
+.sample-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.sample-item {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.25s;
+  background: var(--surface);
+
+  &:hover {
+    border-color: var(--accent1);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(127, 90, 240, 0.15);
+  }
+
+  &.loading {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  img {
+    width: 100%;
+    height: 80px;
+    object-fit: cover;
+    display: block;
+  }
+}
+
+.sample-info {
+  padding: 6px 8px;
+  text-align: center;
+}
+
+.sample-name {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sample-age {
+  font-size: 0.62rem;
+  color: var(--muted);
+}
+
+.group-sample-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.group-sample-item {
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.25s;
+  background: var(--surface);
+
+  &:hover {
+    border-color: var(--accent1);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(127, 90, 240, 0.15);
+  }
+
+  &.loading {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  img {
+    width: 100%;
+    height: 70px;
+    object-fit: cover;
+    display: block;
+  }
+}
+
+/* ─── Error Message ─── */
+.error-msg {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #ef4444;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+/* ─── Attributes Grid ─── */
+.attr-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.attr-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.attr-icon {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  background: rgba(127, 90, 240, 0.12);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; color: var(--accent1); flex-shrink: 0;
+}
+
+.attr-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.attr-label {
+  font-size: 0.68rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.attr-value {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: capitalize;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 1100px) {
+  .pred-grid { grid-template-columns: 1fr; }
+  .sample-grid { grid-template-columns: repeat(4, 1fr); }
+  .group-sample-grid { grid-template-columns: 1fr 1fr; }
+}

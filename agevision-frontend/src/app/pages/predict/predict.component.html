@@ -1,0 +1,311 @@
+<div class="page">
+  <div class="section-title"><i class="fa-solid fa-microscope"></i> Age <span class="gradient-text">Prediction</span></div>
+  <div class="section-sub">Upload an image or open your camera to predict ages in real time.</div>
+
+  <!-- Mode Tabs -->
+  <div class="mode-tabs">
+    <div class="mode-tab" [class.active]="mode === 'upload'" (click)="switchMode('upload')">
+      <i class="fa-solid fa-cloud-arrow-up"></i> Upload Image
+    </div>
+    <div class="mode-tab" [class.active]="mode === 'camera'" (click)="switchMode('camera')">
+      <i class="fa-solid fa-video"></i> Live Camera
+    </div>
+  </div>
+
+  <div class="pred-grid">
+    <!-- ═══════════ Left Column ═══════════ -->
+    <div class="pred-left">
+
+      <!-- ───── UPLOAD MODE ───── -->
+      <ng-container *ngIf="mode === 'upload'">
+        <!-- Upload Dropzone -->
+        <div class="card card-p" *ngIf="!imagePreview">
+          <div class="upload-drop"
+               [class.dragging]="isDragging"
+               (dragover)="onDragOver($event)"
+               (dragleave)="onDragLeave()"
+               (drop)="onDrop($event)"
+               (click)="fileInput.click()">
+            <input #fileInput type="file" accept="image/*" hidden (change)="onFileSelect($event)" />
+            <div class="drop-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+            <div class="drop-title">Drop your image here</div>
+            <div class="drop-sub">or click to browse &bull; JPG, PNG, WebP up to 10MB</div>
+            <div class="drop-formats">
+              <span class="chip chip-purple">JPG</span>
+              <span class="chip chip-green">PNG</span>
+              <span class="chip chip-orange">WebP</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Image Preview -->
+        <div class="card card-p" *ngIf="imagePreview">
+          <div class="pred-preview">
+            <div class="pred-image-wrapper">
+              <img [src]="imagePreview" alt="Preview" />
+              <div class="face-bbox-dynamic"
+                   *ngFor="let face of faces; let i = index"
+                   [style.left.%]="face.face_region.x_pct"
+                   [style.top.%]="face.face_region.y_pct"
+                   [style.width.%]="face.face_region.w_pct"
+                   [style.height.%]="face.face_region.h_pct"
+                   [class.active]="selectedFaceIndex === i"
+                   (click)="selectFace(i)">
+                <span class="face-id-label">{{ face.face_id }}</span>
+              </div>
+            </div>
+          </div>
+          <div *ngIf="errorMessage" class="error-msg">
+            <i class="fa-solid fa-circle-exclamation"></i> {{ errorMessage }}
+          </div>
+          <div style="display:flex;gap:10px;margin-top:14px">
+            <button class="btn btn-primary" style="flex:1" (click)="analyze()" [disabled]="isAnalyzing">
+              <span *ngIf="!isAnalyzing"><i class="fa-solid fa-microscope"></i> Analyze</span>
+              <span *ngIf="isAnalyzing" class="spinner"></span>
+            </button>
+            <button class="btn btn-ghost btn-icon btn-danger" (click)="clearImage()"><i class="fa-solid fa-trash-can"></i></button>
+          </div>
+        </div>
+
+        <!-- Single Face Samples -->
+        <div class="card card-p">
+          <div class="section-title" style="font-size:0.95rem;margin-bottom:12px"><i class="fa-solid fa-user"></i> Single Face Samples</div>
+          <div class="sample-sub">Click a photo to test single-face age prediction</div>
+          <div class="sample-grid">
+            <div class="sample-item" *ngFor="let s of singleSamples" (click)="selectSample(s)" [class.loading]="loadingSample">
+              <img [src]="'samples/' + s.file" [alt]="s.label" loading="lazy" />
+              <div class="sample-info">
+                <span class="sample-name">{{ s.label }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Group Samples -->
+        <div class="card card-p">
+          <div class="section-title" style="font-size:0.95rem;margin-bottom:12px"><i class="fa-solid fa-users"></i> Group Samples</div>
+          <div class="sample-sub">Test multi-face detection with group photos</div>
+          <div class="group-sample-grid">
+            <div class="group-sample-item" *ngFor="let g of groupSamples" (click)="selectGroupSample(g)" [class.loading]="loadingSample">
+              <img [src]="'samples/' + g.file" [alt]="g.label" loading="lazy" />
+              <div class="sample-info">
+                <span class="sample-name">{{ g.label }}</span>
+                <span class="sample-age"><i class="fa-solid fa-users" style="font-size:0.55rem"></i> {{ g.faces }} faces</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- ───── CAMERA MODE ───── -->
+      <ng-container *ngIf="mode === 'camera'">
+        <!-- Camera Off -->
+        <div class="card card-p" *ngIf="!cameraActive && !cameraLoading">
+          <div class="cam-start-zone" (click)="startCamera()">
+            <div class="cam-icon"><i class="fa-solid fa-video"></i></div>
+            <div class="cam-title">Start Camera</div>
+            <div class="cam-sub">Click to open your camera for real-time age prediction</div>
+            <button class="btn btn-primary" style="margin-top:16px">
+              <i class="fa-solid fa-play"></i> Open Camera
+            </button>
+          </div>
+          <div class="cam-selector" *ngIf="cameraList.length > 1">
+            <div class="cam-selector-label">Select Camera</div>
+            <div class="cam-selector-pills">
+              <div class="mpill" *ngFor="let cam of cameraList; let i = index"
+                   [class.active]="selectedCameraId === cam.deviceId"
+                   (click)="switchCamera(cam.deviceId)">
+                <i class="fa-solid fa-camera"></i> {{ cam.label || 'Camera ' + (i + 1) }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Camera Loading -->
+        <div class="card card-p" *ngIf="cameraLoading">
+          <div class="cam-start-zone">
+            <div class="spinner" style="width:40px;height:40px;margin-bottom:16px"></div>
+            <div class="cam-title">Starting Camera...</div>
+            <div class="cam-sub">Please allow camera access when prompted</div>
+          </div>
+        </div>
+
+        <!-- Camera Active -->
+        <div class="card card-p" *ngIf="cameraActive">
+          <div class="cam-feed">
+            <video #videoEl autoplay playsinline muted></video>
+            <canvas #canvasEl hidden></canvas>
+
+            <!-- Face Overlays on video -->
+            <div class="cam-face-bbox"
+                 *ngFor="let face of faces"
+                 [style.left.%]="100 - face.face_region.x_pct - face.face_region.w_pct"
+                 [style.top.%]="face.face_region.y_pct"
+                 [style.width.%]="face.face_region.w_pct"
+                 [style.height.%]="face.face_region.h_pct">
+              <span class="cam-face-label">{{ face.predicted_age }}y &middot; {{ face.gender }}</span>
+            </div>
+
+            <!-- Live badge -->
+            <div class="live-badge" *ngIf="autoPredict">
+              <span class="live-dot"></span> LIVE
+            </div>
+
+            <!-- Predicting badge -->
+            <div class="predicting-badge" *ngIf="isPredicting">
+              <span class="spinner-sm"></span> Analyzing...
+            </div>
+          </div>
+
+          <!-- Camera Controls -->
+          <div class="cam-controls">
+            <button class="btn btn-primary" (click)="captureAndPredict()" [disabled]="isPredicting">
+              <i class="fa-solid fa-camera"></i> Capture
+            </button>
+            <button class="btn" [class.btn-accent]="autoPredict" [class.btn-ghost]="!autoPredict" (click)="toggleAutoPredict()">
+              <i class="fa-solid" [class.fa-rotate]="autoPredict" [class.fa-pause]="!autoPredict"></i>
+              {{ autoPredict ? 'Auto: ON' : 'Auto: OFF' }}
+            </button>
+            <button class="btn btn-ghost btn-danger" (click)="stopCamera()">
+              <i class="fa-solid fa-stop"></i> Stop
+            </button>
+          </div>
+
+          <!-- Camera selector when active -->
+          <div class="cam-selector" *ngIf="cameraList.length > 1">
+            <div class="cam-selector-pills">
+              <div class="mpill" *ngFor="let cam of cameraList; let i = index"
+                   [class.active]="selectedCameraId === cam.deviceId"
+                   (click)="switchCamera(cam.deviceId)">
+                <i class="fa-solid fa-camera"></i> {{ cam.label || 'Camera ' + (i + 1) }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Error -->
+        <div class="error-msg" *ngIf="errorMessage">
+          <i class="fa-solid fa-circle-exclamation"></i> {{ errorMessage }}
+        </div>
+      </ng-container>
+
+      <!-- Model Info (both modes) -->
+      <div class="card card-p">
+        <div class="section-title" style="font-size:0.95rem;margin-bottom:12px"><i class="fa-solid fa-brain"></i> Detection Model</div>
+        <div class="model-info">
+          <div class="mpill active"><i class="fa-solid fa-star"></i> MiVOLO v2</div>
+          <div style="font-size:0.75rem;color:var(--muted);margin-top:10px">
+            YOLOv8 face/body detection + Vision Transformer age/gender estimation (~3.65 MAE)
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ Right Column: Results ═══════════ -->
+    <div class="pred-right">
+      <!-- Results Card -->
+      <div class="card card-p">
+        <div class="section-title" style="font-size:0.95rem;margin-bottom:16px"><i class="fa-solid fa-bullseye"></i> Results</div>
+        <div *ngIf="!showResults" class="pred-empty">
+          <div style="font-size:2.5rem;margin-bottom:10px"><i class="fa-solid fa-user" style="color:var(--muted)"></i></div>
+          <div style="color:var(--muted);font-size:0.82rem" *ngIf="mode === 'upload'">Upload an image and click Analyze to see results</div>
+          <div style="color:var(--muted);font-size:0.82rem" *ngIf="mode === 'camera'">Start camera to detect faces in real time</div>
+        </div>
+        <div *ngIf="showResults">
+          <div class="result-big-number">
+            <span class="rbn">{{ predictedAge }}</span>
+            <span class="rbn-label">years old</span>
+          </div>
+          <div class="age-range-row">
+            <div class="age-range-item">
+              <div class="ar-label">Min</div>
+              <div class="ar-val">{{ ageRange.min }}</div>
+            </div>
+            <div class="age-range-item">
+              <div class="ar-label">Predicted</div>
+              <div class="ar-val highlight">{{ predictedAge }}</div>
+            </div>
+            <div class="age-range-item">
+              <div class="ar-label">Max</div>
+              <div class="ar-val">{{ ageRange.max }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Face List (Group/Multi-face) -->
+      <div class="card card-p" *ngIf="showResults && faces.length > 1">
+        <div class="section-title" style="font-size:0.95rem;margin-bottom:12px"><i class="fa-solid fa-users"></i> Detected Faces ({{ faces.length }})</div>
+        <div class="face-list">
+          <div class="face-list-item"
+               *ngFor="let face of faces; let i = index"
+               [class.active]="selectedFaceIndex === i"
+               (click)="selectFace(i)">
+            <div class="fli-id">{{ face.face_id }}</div>
+            <div class="fli-details">
+              <span class="fli-age">Age {{ face.predicted_age }}</span>
+              <span class="fli-meta">{{ face.gender }} &middot; {{ face.emotion }}</span>
+            </div>
+            <div class="fli-conf">{{ (face.confidence * 100) | number:'1.0-0' }}%</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Attributes -->
+      <div class="card card-p" *ngIf="showResults">
+        <div class="section-title" style="font-size:0.95rem;margin-bottom:14px"><i class="fa-solid fa-face-smile"></i> Attributes</div>
+        <div class="attr-grid">
+          <div class="attr-item">
+            <div class="attr-icon"><i class="fa-solid fa-venus-mars"></i></div>
+            <div class="attr-details">
+              <div class="attr-label">Gender</div>
+              <div class="attr-value">{{ gender }}</div>
+            </div>
+          </div>
+          <div class="attr-item">
+            <div class="attr-icon"><i class="fa-solid fa-theater-masks"></i></div>
+            <div class="attr-details">
+              <div class="attr-label">Emotion</div>
+              <div class="attr-value">{{ emotion }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Confidence Bars -->
+      <div class="card card-p" *ngIf="showResults">
+        <div class="section-title" style="font-size:0.95rem;margin-bottom:14px"><i class="fa-solid fa-chart-pie"></i> Confidence</div>
+        <div class="conf-bar" *ngFor="let bar of confBars">
+          <div class="conf-row">
+            <span>{{ bar.label }}</span>
+            <strong>{{ bar.value }}%</strong>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" [style.width.%]="bar.value" [style.background]="bar.color"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detection Info -->
+      <div class="card card-p" *ngIf="showResults">
+        <div class="section-title" style="font-size:0.95rem;margin-bottom:12px"><i class="fa-solid fa-user-check"></i> Detection Info</div>
+        <div class="settings-info-row">
+          <span class="sir-label">Faces Detected</span>
+          <span class="sir-value">{{ faceCount }}</span>
+        </div>
+        <div class="settings-info-row">
+          <span class="sir-label">Model Used</span>
+          <span class="sir-value">MiVOLO v2</span>
+        </div>
+        <div class="settings-info-row">
+          <span class="sir-label">Processing Time</span>
+          <span class="sir-value">{{ formatProcessingTime() }}</span>
+        </div>
+        <div class="settings-info-row" *ngIf="mode === 'camera'">
+          <span class="sir-label">Mode</span>
+          <span class="sir-value">Real-time Camera</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

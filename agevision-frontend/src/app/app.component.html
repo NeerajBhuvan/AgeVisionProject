@@ -1,0 +1,55 @@
+<!-- Animated Background -->
+<div id="bg">
+  <div class="orb o1"></div>
+  <div class="orb o2"></div>
+  <div class="orb o3"></div>
+  <div class="orb o4"></div>
+</div>
+<div class="noise"></div>
+
+<!-- Auth pages (login/register) — no shell -->
+<ng-container *ngIf="isAuthPage">
+  <div class="auth-anim-wrap" [@routeAnimation]="getRouteAnimationData()">
+    <router-outlet />
+  </div>
+</ng-container>
+
+<!-- Main App Shell -->
+<ng-container *ngIf="!isAuthPage">
+  <div id="sidebar-overlay"
+       [class.show]="sidebarOpen"
+       (click)="closeSidebar()"></div>
+  <div id="app">
+    <app-sidebar [isOpen]="sidebarOpen" (closeSidebar)="closeSidebar()"></app-sidebar>
+    <div id="main">
+      <app-topbar (toggleSidebar)="toggleSidebar()"></app-topbar>
+      <div id="main-content" [@routeAnimation]="getRouteAnimationData()">
+        <router-outlet />
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile Bottom Nav -->
+  <nav id="bottom-nav">
+    <a routerLink="/dashboard" routerLinkActive="active" class="bnav-item">
+      <span class="bnav-icon"><i class="fa-solid fa-house"></i></span>
+      <span class="bnav-label">Home</span>
+    </a>
+    <a routerLink="/predict" routerLinkActive="active" class="bnav-item">
+      <span class="bnav-icon"><i class="fa-solid fa-microscope"></i></span>
+      <span class="bnav-label">Predict</span>
+    </a>
+    <a routerLink="/progress" routerLinkActive="active" class="bnav-item">
+      <span class="bnav-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+      <span class="bnav-label">Progress</span>
+    </a>
+    <a routerLink="/history" routerLinkActive="active" class="bnav-item">
+      <span class="bnav-icon"><i class="fa-solid fa-folder-open"></i></span>
+      <span class="bnav-label">History</span>
+    </a>
+    <a routerLink="/analytics" routerLinkActive="active" class="bnav-item">
+      <span class="bnav-icon"><i class="fa-solid fa-chart-bar"></i></span>
+      <span class="bnav-label">Analytics</span>
+    </a>
+  </nav>
+</ng-container>

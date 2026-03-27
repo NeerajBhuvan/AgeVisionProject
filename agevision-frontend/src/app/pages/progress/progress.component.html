@@ -1,0 +1,283 @@
+<div class="page">
+  <div class="section-title"><i class="fa-solid fa-wand-magic-sparkles"></i> Age <span class="gradient-text">Progression</span></div>
+  <div class="section-sub">Simulate how a face ages over time using advanced aging models.</div>
+
+  <!-- Error Banner -->
+  <div class="error-banner" *ngIf="errorMessage">
+    <span><i class="fa-solid fa-triangle-exclamation"></i> {{ errorMessage }}</span>
+    <button class="btn-close" (click)="errorMessage = ''"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+
+  <div class="prog-grid">
+    <!-- ═══════════ Left: Source & Controls ═══════════ -->
+    <div class="prog-left">
+
+      <!-- Source Image Card -->
+      <div class="card card-p">
+        <div class="section-title" style="font-size:0.95rem;margin-bottom:12px"><i class="fa-solid fa-camera"></i> Source Image</div>
+
+        <!-- Source Mode Tabs -->
+        <div class="source-tabs">
+          <div class="source-tab" [class.active]="sourceMode === 'upload'" (click)="switchSourceMode('upload')">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Upload
+          </div>
+          <div class="source-tab" [class.active]="sourceMode === 'camera'" (click)="switchSourceMode('camera')">
+            <i class="fa-solid fa-video"></i> Camera
+          </div>
+        </div>
+
+        <!-- Already captured / uploaded image preview -->
+        <div *ngIf="imagePreview" class="prog-preview">
+          <img [src]="imagePreview" alt="Source" />
+          <button class="btn btn-ghost btn-sm btn-icon btn-danger remove-btn" (click)="clearImage()"><i class="fa-solid fa-trash-can"></i></button>
+          <div class="detected-badge" *ngIf="showResult && currentAge">
+            Detected age: <strong>{{ currentAge }}</strong>
+            <span *ngIf="gender"> · {{ gender }}</span>
+          </div>
+        </div>
+
+        <!-- Upload Mode -->
+        <ng-container *ngIf="sourceMode === 'upload' && !imagePreview">
+          <div class="upload-drop"
+               [class.dragging]="isDragging"
+               (dragover)="onDragOver($event)"
+               (dragleave)="onDragLeave()"
+               (drop)="onDrop($event)"
+               (click)="fileInput.click()">
+            <input #fileInput type="file" accept="image/*" hidden (change)="onFileSelect($event)" />
+            <div class="drop-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+            <div class="drop-title">Upload source face</div>
+            <div class="drop-sub">Clear frontal photo works best · JPG, PNG up to 10 MB</div>
+          </div>
+        </ng-container>
+
+        <!-- Camera Mode -->
+        <ng-container *ngIf="sourceMode === 'camera' && !imagePreview">
+          <!-- Camera Off -->
+          <div class="cam-start-zone" *ngIf="!cameraActive && !cameraLoading" (click)="startCamera()">
+            <div class="cam-icon"><i class="fa-solid fa-video"></i></div>
+            <div class="cam-title">Open Camera</div>
+            <div class="cam-sub">Take a photo to use as the source face</div>
+            <button class="btn btn-primary" style="margin-top:14px">
+              <i class="fa-solid fa-play"></i> Start Camera
+            </button>
+          </div>
+
+          <!-- Camera Loading -->
+          <div class="cam-start-zone" *ngIf="cameraLoading">
+            <div class="spinner" style="width:36px;height:36px;margin-bottom:14px"></div>
+            <div class="cam-title">Starting Camera...</div>
+            <div class="cam-sub">Please allow camera access when prompted</div>
+          </div>
+
+          <!-- Camera Active -->
+          <div *ngIf="cameraActive" class="cam-capture-feed">
+            <video #camVideo autoplay playsinline muted></video>
+            <canvas #camCanvas hidden></canvas>
+            <div class="cam-capture-controls">
+              <button class="btn btn-primary" (click)="capturePhoto()">
+                <i class="fa-solid fa-camera"></i> Capture Photo
+              </button>
+              <button class="btn btn-ghost btn-danger" (click)="stopCamera()">
+                <i class="fa-solid fa-stop"></i> Cancel
+              </button>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- Error -->
+        <div class="error-msg" *ngIf="errorMessage && sourceMode === 'camera'" style="margin-top:12px">
+          <i class="fa-solid fa-circle-exclamation"></i> {{ errorMessage }}
+        </div>
+      </div>
+
+      <!-- Target Age Selection -->
+      <div class="card card-p">
+        <div class="section-title" style="font-size:0.95rem;margin-bottom:12px"><i class="fa-solid fa-bullseye"></i> Target Age</div>
+        <div class="target-grid">
+          <button class="tg-btn" *ngFor="let age of targetAges"
+                  [class.active]="selectedAge === age && !useCustomAge"
+                  (click)="selectAge(age)">
+            {{ age }}
+          </button>
+        </div>
+        <div class="custom-age-row">
+          <label class="custom-label">Or enter age:</label>
+          <input type="number" class="custom-input" min="1" max="100"
+                 [(ngModel)]="customAge"
+                 (input)="onCustomAgeInput()"
+                 [class.active]="useCustomAge"
+                 placeholder="1–100" />
+        </div>
+        <div class="selected-age-display">
+          Targeting: <strong>{{ effectiveTargetAge }} years</strong>
+        </div>
+      </div>
+
+      <!-- GAN Model -->
+      <div class="card card-p">
+        <div class="section-title" style="font-size:0.95rem;margin-bottom:12px"><i class="fa-solid fa-brain"></i> Model</div>
+        <div class="gan-list">
+          <div class="gan-item" *ngFor="let g of gans"
+               [class.active]="selectedGan === g.id"
+               (click)="selectGan(g.id)">
+            <span class="gan-icon"><i [class]="g.icon"></i></span>
+            <div class="gan-info">
+              <div class="gan-name">{{ g.name }}</div>
+              <div class="gan-desc">{{ g.desc }}</div>
+            </div>
+            <span class="gan-check" *ngIf="selectedGan === g.id"><i class="fa-solid fa-check"></i></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Generate Button -->
+      <button class="btn btn-primary btn-full generate-btn"
+              (click)="generate()"
+              [disabled]="!imagePreview || isGenerating">
+        <span *ngIf="!isGenerating"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate Progression</span>
+        <span *ngIf="isGenerating" class="generating-content">
+          <span class="spinner"></span>
+          <span>Processing…</span>
+        </span>
+      </button>
+    </div>
+
+    <!-- ═══════════ Right: Results ═══════════ -->
+    <div class="prog-right">
+
+      <!-- Comparison Slider View -->
+      <div class="card card-p" *ngIf="showResult && progressedImageUrl">
+        <div class="section-title" style="font-size:0.95rem;margin-bottom:14px">
+          <i class="fa-solid fa-arrows-rotate"></i> Before / After Comparison
+        </div>
+
+        <div class="comparison-slider"
+             #compSlider
+             (mousemove)="onSliderMove($event, compSlider)"
+             (click)="onSliderMove($event, compSlider)">
+          <!-- After (progressed) – full image behind -->
+          <div class="comp-after">
+            <img [src]="progressedImageUrl" alt="Aged to {{ effectiveTargetAge }}" />
+            <div class="comp-label-tag after-tag">Age {{ effectiveTargetAge }}</div>
+          </div>
+          <!-- Before (original) – clipped by slider -->
+          <div class="comp-before" [style.width.%]="sliderPosition">
+            <img [src]="imagePreview" alt="Original"
+                 [style.width.%]="sliderPosition > 0 ? (100 / sliderPosition) * 100 : 100" />
+            <div class="comp-label-tag before-tag">Original</div>
+          </div>
+          <!-- Slider handle -->
+          <div class="slider-handle" [style.left.%]="sliderPosition">
+            <div class="handle-line"></div>
+            <div class="handle-circle"><i class="fa-solid fa-arrows-left-right" style="font-size:0.7em"></i></div>
+            <div class="handle-line"></div>
+          </div>
+        </div>
+
+        <div class="comparison-actions">
+          <button class="btn btn-ghost btn-sm" (click)="downloadResult()">
+            <i class="fa-solid fa-download"></i> Download Result
+          </button>
+        </div>
+      </div>
+
+      <!-- Side-by-Side Fallback (if slider not desired) -->
+      <div class="card card-p" *ngIf="showResult && progressedImageUrl">
+        <div class="section-title" style="font-size:0.95rem;margin-bottom:14px"><i class="fa-solid fa-images"></i> Side by Side</div>
+        <div class="compare-grid">
+          <div class="compare-card">
+            <div class="comp-label">Original ({{ currentAge || '?' }})</div>
+            <div class="comp-img">
+              <img [src]="imagePreview" alt="Original" />
+            </div>
+          </div>
+          <div class="compare-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+          <div class="compare-card">
+            <div class="comp-label">Age {{ effectiveTargetAge }}</div>
+            <div class="comp-img">
+              <img [src]="progressedImageUrl" alt="Aged" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pipeline Steps -->
+      <div class="card card-p" *ngIf="isGenerating || showResult">
+        <div class="section-title" style="font-size:0.95rem;margin-bottom:14px"><i class="fa-solid fa-gears"></i> Pipeline</div>
+        <div class="pipeline">
+          <div class="prog-step" *ngFor="let step of pipelineSteps; let i = index"
+               [class.step-done]="step.status === 'done'"
+               [class.step-running]="step.status === 'running'"
+               [class.step-error]="step.status === 'error'">
+            <div class="step-num">{{ i + 1 }}</div>
+            <div class="step-icon"><i [class]="step.icon"></i></div>
+            <div class="step-label">{{ step.label }}</div>
+
+            <span *ngIf="step.status === 'done'" class="chip chip-green" style="margin-left:auto">
+              Done <span *ngIf="step.time_ms" class="step-time">{{ step.time_ms | number:'1.0-0' }}ms</span>
+            </span>
+            <span *ngIf="step.status === 'running'" class="chip chip-blue" style="margin-left:auto">
+              <span class="spinner-sm"></span> Running
+            </span>
+            <span *ngIf="step.status === 'pending'" class="chip chip-muted" style="margin-left:auto">
+              Waiting
+            </span>
+            <span *ngIf="step.status === 'error'" class="chip chip-red" style="margin-left:auto">
+              Error
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Aging Insights -->
+      <div class="card card-p" *ngIf="showResult && insights.length">
+        <div class="section-title" style="font-size:0.95rem;margin-bottom:14px"><i class="fa-solid fa-chart-line"></i> Aging Insights</div>
+        <div class="conf-bar" *ngFor="let ins of insights">
+          <div class="conf-row">
+            <span>{{ ins.label }}</span>
+            <strong>{{ ins.value }}%</strong>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" [style.width.%]="ins.value" [style.background]="ins.color"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Processing Stats -->
+      <div class="card card-p" *ngIf="showResult">
+        <div class="section-title" style="font-size:0.95rem;margin-bottom:12px"><i class="fa-solid fa-clipboard-list"></i> Processing Stats</div>
+        <div class="settings-info-row">
+          <span class="sir-label">Model Used</span>
+          <span class="sir-value">{{ modelUsed }}</span>
+        </div>
+        <div class="settings-info-row">
+          <span class="sir-label">Current Age</span>
+          <span class="sir-value">{{ currentAge }}</span>
+        </div>
+        <div class="settings-info-row">
+          <span class="sir-label">Target Age</span>
+          <span class="sir-value">{{ effectiveTargetAge }}</span>
+        </div>
+        <div class="settings-info-row">
+          <span class="sir-label">Gender</span>
+          <span class="sir-value">{{ gender }}</span>
+        </div>
+        <div class="settings-info-row">
+          <span class="sir-label">Processing Time</span>
+          <span class="sir-value">{{ processingTime | number:'1.0-0' }} ms</span>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div class="card card-p" *ngIf="!showResult && !isGenerating">
+        <div class="pred-empty" style="padding:50px 0">
+          <div style="font-size:3.5rem;margin-bottom:14px"><i class="fa-solid fa-wand-magic-sparkles" style="color:var(--accent1)"></i></div>
+          <div style="color:var(--muted);font-size:0.85rem;max-width:280px;margin:0 auto">
+            Upload a source image, select a target age, choose a model and click <strong>Generate</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

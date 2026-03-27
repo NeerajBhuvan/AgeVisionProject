@@ -1,0 +1,108 @@
+<div class="page">
+  <div class="section-title"><i class="fa-solid fa-folder-open"></i> Analysis <span class="gradient-text">History</span></div>
+  <div class="section-sub">Browse and manage your past age analyses.</div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading-state">
+    <i class="fa-solid fa-spinner fa-spin"></i> Loading history...
+  </div>
+
+  <ng-container *ngIf="!loading">
+    <!-- Toolbar -->
+    <div class="history-toolbar">
+      <div class="filter-tabs">
+        <button class="ftab" [class.active]="activeFilter === 'all'" (click)="setFilter('all')">
+          All <span class="ftab-count" *ngIf="items.length > 0">{{ items.length }}</span>
+        </button>
+        <button class="ftab" [class.active]="activeFilter === 'prediction'" (click)="setFilter('prediction')">
+          Predictions <span class="ftab-count" *ngIf="predictionCount > 0">{{ predictionCount }}</span>
+        </button>
+        <button class="ftab" [class.active]="activeFilter === 'progression'" (click)="setFilter('progression')">
+          Progressions <span class="ftab-count" *ngIf="progressionCount > 0">{{ progressionCount }}</span>
+        </button>
+      </div>
+      <div class="search-box">
+        <span class="sb-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
+        <input type="text" placeholder="Search history..." [(ngModel)]="searchQuery" (input)="onSearchInput()" />
+      </div>
+      <button class="btn btn-ghost btn-sm" (click)="toggleView()">
+        <i [class]="viewMode === 'grid' ? 'fa-solid fa-list' : 'fa-solid fa-table-cells'"></i> {{ viewMode === 'grid' ? 'List' : 'Grid' }}
+      </button>
+      <select class="form-select" [(ngModel)]="sortBy" (ngModelChange)="onSortChange()" style="width:120px;padding:6px 10px;font-size:0.75rem">
+        <option value="newest">Newest</option>
+        <option value="oldest">Oldest</option>
+        <option value="confidence">Confidence</option>
+      </select>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="filteredItems.length === 0">
+      <i class="fa-solid fa-inbox"></i>
+      <p *ngIf="items.length === 0">No analyses yet. Go to Predict or Progress to get started!</p>
+      <p *ngIf="items.length > 0">No results match your filters.</p>
+    </div>
+
+    <!-- Grid View -->
+    <div class="history-grid-view" *ngIf="viewMode === 'grid' && paginatedItems.length > 0">
+      <div class="hist-card card" *ngFor="let item of paginatedItems; trackBy: trackById">
+        <div class="hist-thumb">
+          <img *ngIf="item.imageUrl" [src]="item.imageUrl" [alt]="item.type" loading="lazy" />
+          <i *ngIf="!item.imageUrl" [class]="item.icon"></i>
+        </div>
+        <div class="hist-overlay">
+          <span class="hist-age">{{ item.age }}</span>
+        </div>
+        <div class="hist-info">
+          <div class="hist-date">{{ item.dateFormatted }}</div>
+          <div class="hist-meta">
+            <span class="chip" [ngClass]="item.chipClass">{{ item.type }}</span>
+            <span class="hist-model">{{ item.model }}</span>
+          </div>
+        </div>
+        <div class="hist-delete">
+          <button class="hl-btn" title="Delete" (click)="deleteItem(item)" [disabled]="isDeleting(item)">
+            <i [class]="isDeleting(item) ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-trash-can'"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- List View -->
+    <div class="history-list-view" *ngIf="viewMode === 'list' && paginatedItems.length > 0">
+      <div class="hl-item" *ngFor="let item of paginatedItems; trackBy: trackById">
+        <div class="hl-thumb">
+          <img *ngIf="item.imageUrl" [src]="item.imageUrl" [alt]="item.type" loading="lazy" />
+          <i *ngIf="!item.imageUrl" [class]="item.icon"></i>
+        </div>
+        <div class="hl-body">
+          <div class="hl-title">{{ item.type }} Analysis</div>
+          <div class="hl-meta">{{ item.dateFormatted }} &bull; {{ item.model }} &bull; {{ item.processingTimeFormatted }}</div>
+        </div>
+        <span class="chip" [ngClass]="item.chipClass">{{ item.type }}</span>
+        <div class="hl-age">{{ item.age }}</div>
+        <div class="hl-conf" *ngIf="item.confidence !== null">
+          <span class="conf-val">{{ item.confidence | number:'1.0-0' }}%</span>
+        </div>
+        <div class="hl-actions">
+          <button class="hl-btn" title="Delete" (click)="deleteItem(item)" [disabled]="isDeleting(item)">
+            <i [class]="isDeleting(item) ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-trash-can'"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Load More -->
+    <div class="load-more-row" *ngIf="hasMore">
+      <button class="btn btn-ghost load-more-btn" (click)="loadMore()">
+        <i class="fa-solid fa-angles-down"></i> Load More
+        <span class="load-more-count">{{ paginatedItems.length }} of {{ filteredItems.length }}</span>
+      </button>
+    </div>
+
+    <!-- Summary -->
+    <div class="history-summary" *ngIf="items.length > 0">
+      <span>{{ paginatedItems.length }} of {{ filteredItems.length }} records</span>
+      <span *ngIf="activeFilter !== 'all'"> &bull; filtered from {{ items.length }} total</span>
+    </div>
+  </ng-container>
+</div>

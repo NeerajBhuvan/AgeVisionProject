@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+*.so
+venv/
+env/
+.env
+
+# Model checkpoints (too large for GitHub)
+*.pth
+*.pt
+*.h5
+*.onnx
+*.pkl
+*.dat
+*.caffemodel
+agevision_backend/checkpoints/
+
+# Node
+node_modules/
+agevision-frontend/.angular/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Django
+*.sqlite3
+agevision_backend/media/
+db.sqlite3
+
+# Results/output (optional - remove if you want to track these)
+results/
+
+# Logs
+*.log
+
+# Temp
+*.tmp
+.claude/

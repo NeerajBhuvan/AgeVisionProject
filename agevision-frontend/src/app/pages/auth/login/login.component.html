@@ -1,0 +1,91 @@
+<div class="auth-screen">
+  <div class="auth-card">
+    <!-- Logo -->
+    <div class="auth-logo">
+      <app-logo width="80" height="54"></app-logo>
+    </div>
+
+    <h2 class="auth-title">Welcome Back</h2>
+    <p class="auth-sub">Sign in to continue to AgeVision AI</p>
+
+    <!-- Error -->
+    @if (errorMessage) {
+      <div class="auth-error">
+        <span><i class="fa-solid fa-triangle-exclamation"></i></span>
+        <span>{{ errorMessage }}</span>
+      </div>
+    }
+
+    <!-- Form -->
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" autocomplete="off">
+      <div class="form-group">
+        <label class="form-label" for="username">Email or Username <span class="required">*</span></label>
+        <input
+          id="username"
+          type="text"
+          class="form-input"
+          formControlName="username"
+          placeholder="you&#64;example.com"
+          autocomplete="username"
+        />
+        @if (f['username'].touched && f['username'].errors) {
+          <span class="auth-field-error">
+            @if (f['username'].errors['required']) { Username is required }
+          </span>
+        }
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Password <span class="required">*</span></label>
+        <div class="password-wrap">
+          <input
+            id="password"
+            [type]="showPassword ? 'text' : 'password'"
+            class="form-input pw-input"
+            formControlName="password"
+            placeholder="Enter your password"
+            autocomplete="current-password"
+          />
+          <button
+            type="button"
+            class="password-toggle"
+            (click)="togglePasswordVisibility()"
+            tabindex="-1"
+            [title]="showPassword ? 'Hide password' : 'Show password'"
+          >
+            <i [class]="showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+          </button>
+        </div>
+        @if (f['password'].touched && f['password'].errors) {
+          <span class="auth-field-error">
+            @if (f['password'].errors['required']) { Password is required }
+            @else if (f['password'].errors['minlength']) { Minimum 8 characters }
+          </span>
+        }
+      </div>
+
+      <!-- Remember + Forgot -->
+      <div class="auth-remember">
+        <label class="auth-checkbox">
+          <input type="checkbox" formControlName="rememberMe" />
+          <span>Remember me</span>
+        </label>
+        <a class="auth-link" routerLink="/forgot-password">Forgot password?</a>
+      </div>
+
+      <!-- Submit -->
+      <button type="submit" class="btn btn-primary btn-full" [disabled]="isLoading">
+        @if (isLoading) {
+          <span class="spinner"></span> Signing in…
+        } @else {
+          Sign In
+        }
+      </button>
+    </form>
+
+    <!-- Footer -->
+    <p class="auth-footer">
+      Don't have an account? <a routerLink="/register" class="auth-link">Create one</a>
+    </p>
+  </div>
+</div>

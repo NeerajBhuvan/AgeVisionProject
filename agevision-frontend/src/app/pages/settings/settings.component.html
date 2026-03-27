@@ -1,0 +1,160 @@
+<div class="page">
+  <div class="section-title"><i class="fa-solid fa-gear"></i> <span class="gradient-text"> Settings </span></div>
+  <div class="section-sub">Manage your account, preferences, and security.</div>
+
+  <div class="settings-layout">
+    <!-- Nav -->
+    <div class="card settings-nav">
+      <div class="settings-nav-item" *ngFor="let s of sections"
+           [class.active]="activeSection === s.id"
+           (click)="setSection(s.id)">
+        <span><i [class]="s.icon"></i></span> {{ s.label }}
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="settings-content">
+      <!-- Profile -->
+      <div id="settings-profile" class="card card-p settings-section">
+        <div class="settings-section-title">
+          <span class="ss-icon"><i class="fa-solid fa-user"></i></span> Profile
+        </div>
+        <div class="avatar-upload">
+          <div class="avatar-preview">{{ auth.getUserInitials() }}</div>
+          <div class="avatar-actions">
+            <span class="avatar-name">{{ auth.getDisplayName() }}</span>
+            <span style="font-size:0.68rem;color:var(--muted)">{{ profileEmail }}</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input class="form-input" type="text" [(ngModel)]="profileName" placeholder="Enter full name" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" type="email" [(ngModel)]="profileEmail" placeholder="Enter email" />
+        </div>
+        <div class="settings-actions">
+          <button class="btn btn-primary btn-sm" (click)="saveProfile()" [disabled]="profileSaving">
+            <i class="fa-solid" [class.fa-check]="!profileSaving" [class.fa-spinner]="profileSaving" [class.fa-spin]="profileSaving"></i>
+            {{ profileSaving ? 'Saving...' : 'Save Changes' }}
+          </button>
+          <span class="settings-msg" *ngIf="profileMsg">{{ profileMsg }}</span>
+        </div>
+      </div>
+
+      <!-- Preferences -->
+      <div id="settings-preferences" class="card card-p settings-section">
+        <div class="settings-section-title">
+          <span class="ss-icon"><i class="fa-solid fa-palette"></i></span> Preferences
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label">Auto-detect faces</span>
+          <div class="tgl" [class.on]="settings.auto_detect_faces" (click)="togglePref('auto_detect_faces')"></div>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label">Save results to history</span>
+          <div class="tgl" [class.on]="settings.save_to_history" (click)="togglePref('save_to_history')"></div>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label">High accuracy mode</span>
+          <div class="tgl" [class.on]="settings.high_accuracy_mode" (click)="togglePref('high_accuracy_mode')"></div>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label">Show confidence scores</span>
+          <div class="tgl" [class.on]="settings.show_confidence" (click)="togglePref('show_confidence')"></div>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label">Email notifications</span>
+          <div class="tgl" [class.on]="settings.notifications_enabled" (click)="togglePref('notifications_enabled')"></div>
+        </div>
+        <div class="form-group" style="margin-top:14px">
+          <label class="form-label">Default Model</label>
+          <select class="form-select" [(ngModel)]="settings.default_model" (ngModelChange)="onModelChange()">
+            <option>DeepFace v3</option>
+            <option>ArcFace</option>
+            <option>VGG-Face</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Language</label>
+          <select class="form-select" [(ngModel)]="settings.language" (ngModelChange)="onLanguageChange()">
+            <option>English</option>
+            <option>Spanish</option>
+            <option>French</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label"><i class="fa-solid fa-clock" style="margin-right:4px"></i> Timezone</label>
+          <select class="form-select" [(ngModel)]="settings.timezone" (ngModelChange)="onTimezoneChange()">
+            <option *ngFor="let tz of timezoneOptions" [value]="tz.value">{{ tz.label }}</option>
+          </select>
+          <div class="tz-hint">All timestamps in dashboard, history, and analytics will use this timezone.</div>
+        </div>
+        <span class="settings-msg pref-msg" *ngIf="prefMsg">
+          <i class="fa-solid fa-circle-check"></i> {{ prefMsg }}
+        </span>
+      </div>
+
+      <!-- Security -->
+      <div id="settings-security" class="card card-p settings-section">
+        <div class="settings-section-title">
+          <span class="ss-icon"><i class="fa-solid fa-lock"></i></span> Security
+        </div>
+        <div class="form-group">
+          <label class="form-label">Current Password</label>
+          <input class="form-input" type="password" [(ngModel)]="currentPassword" placeholder="••••••••" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">New Password</label>
+          <input class="form-input" type="password" [(ngModel)]="newPassword" placeholder="Enter new password" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirm Password</label>
+          <input class="form-input" type="password" [(ngModel)]="confirmPassword" placeholder="Confirm new password" />
+        </div>
+        <div class="settings-actions">
+          <button class="btn btn-primary btn-sm" (click)="changePassword()" [disabled]="securitySaving">
+            <i class="fa-solid" [class.fa-shield-halved]="!securitySaving" [class.fa-spinner]="securitySaving" [class.fa-spin]="securitySaving"></i>
+            {{ securitySaving ? 'Updating...' : 'Update Password' }}
+          </button>
+          <span class="settings-msg" [class.error]="securityError" *ngIf="securityMsg">
+            <i class="fa-solid" [class.fa-circle-check]="!securityError" [class.fa-circle-xmark]="securityError"></i>
+            {{ securityMsg }}
+          </span>
+        </div>
+      </div>
+
+      <!-- About -->
+      <div id="settings-about" class="card card-p settings-section">
+        <div class="settings-section-title">
+          <span class="ss-icon"><i class="fa-solid fa-circle-info"></i></span> About
+        </div>
+        <div class="settings-info-row">
+          <span class="sir-label">Version</span>
+          <span class="sir-value">1.0.0</span>
+        </div>
+        <div class="settings-info-row">
+          <span class="sir-label">Build</span>
+          <span class="sir-value">2026.03</span>
+        </div>
+        <div class="settings-info-row">
+          <span class="sir-label">Framework</span>
+          <span class="sir-value">Angular 19.1</span>
+        </div>
+        <div class="settings-info-row">
+          <span class="sir-label">Backend</span>
+          <span class="sir-value">Django 5.2</span>
+        </div>
+        <div class="settings-info-row">
+          <span class="sir-label">ML Engine</span>
+          <span class="sir-value">DeepFace + PyTorch</span>
+        </div>
+        <div style="margin-top:14px;font-size:0.72rem;color:var(--muted);line-height:1.6">
+          AgeVision AI — Advanced age prediction and progression system.
+          Built with <i class="fa-solid fa-heart" style="color:var(--accent4)"></i> by the AgeVision team.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

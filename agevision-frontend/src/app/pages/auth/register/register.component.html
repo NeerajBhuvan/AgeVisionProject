@@ -1,0 +1,140 @@
+<div class="auth-screen">
+  <div class="auth-card">
+    <!-- Logo -->
+    <div class="auth-logo">
+      <app-logo width="80" height="54"></app-logo>
+    </div>
+
+    <h2 class="auth-title">Create Account</h2>
+    <p class="auth-sub">Join AgeVision AI today</p>
+
+    <!-- Error -->
+    @if (errorMessage) {
+      <div class="auth-error">
+        <span><i class="fa-solid fa-triangle-exclamation"></i></span>
+        <span>{{ errorMessage }}</span>
+      </div>
+    }
+
+    <!-- Form -->
+    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" autocomplete="off">
+      <!-- Name Row -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="first_name">First Name <span class="required">*</span></label>
+          <input id="first_name" type="text" class="form-input"
+                 formControlName="first_name" placeholder="First name" autocomplete="given-name" />
+          @if (f['first_name'].touched && f['first_name'].errors) {
+            <span class="auth-field-error">First name is required</span>
+          }
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="last_name">Last Name <span class="required">*</span></label>
+          <input id="last_name" type="text" class="form-input"
+                 formControlName="last_name" placeholder="Last name" autocomplete="family-name" />
+          @if (f['last_name'].touched && f['last_name'].errors) {
+            <span class="auth-field-error">Last name is required</span>
+          }
+        </div>
+      </div>
+
+      <!-- Email -->
+      <div class="form-group">
+        <label class="form-label" for="email">Email <span class="required">*</span></label>
+        <input id="email" type="email" class="form-input"
+               formControlName="email" placeholder="you&#64;example.com" autocomplete="email" />
+        @if (f['email'].touched && f['email'].errors) {
+          <span class="auth-field-error">
+            @if (f['email'].errors['required']) { Email is required }
+            @else if (f['email'].errors['email']) { Invalid email format }
+          </span>
+        }
+      </div>
+
+      <!-- Username -->
+      <div class="form-group">
+        <label class="form-label" for="username">Username <span class="required">*</span></label>
+        <input id="username" type="text" class="form-input"
+               formControlName="username" placeholder="Choose a username" autocomplete="username" />
+        @if (f['username'].touched && f['username'].errors) {
+          <span class="auth-field-error">
+            @if (f['username'].errors['required']) { Username is required }
+            @else if (f['username'].errors['minlength']) { Minimum 4 characters }
+            @else if (f['username'].errors['pattern']) { Letters, numbers, underscores only }
+          </span>
+        }
+      </div>
+
+      <!-- Password -->
+      <div class="form-group">
+        <label class="form-label" for="password">Password <span class="required">*</span></label>
+        <div class="password-wrap">
+          <input id="password" [type]="showPassword ? 'text' : 'password'" class="form-input pw-input"
+                 formControlName="password" placeholder="Min 8 characters" autocomplete="new-password" />
+          <button type="button" class="password-toggle" (click)="togglePasswordVisibility()" tabindex="-1"
+                  [title]="showPassword ? 'Hide password' : 'Show password'">
+            <i [class]="showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+          </button>
+        </div>
+        @if (f['password'].touched && f['password'].errors) {
+          <span class="auth-field-error">
+            @if (f['password'].errors['required']) { Password is required }
+            @else if (f['password'].errors['minlength']) { Minimum 8 characters }
+          </span>
+        }
+        <!-- Strength bar -->
+        @if (f['password'].value) {
+          <div class="strength-wrapper">
+            <div class="strength-bar">
+              <div class="strength-fill {{ strengthClass }}"
+                   [style.width.%]="passwordStrength * 25"></div>
+            </div>
+            <span class="strength-label {{ strengthClass }}">{{ strengthLabel }}</span>
+          </div>
+        }
+      </div>
+
+      <!-- Confirm Password -->
+      <div class="form-group">
+        <label class="form-label" for="confirmPassword">Confirm Password <span class="required">*</span></label>
+        <div class="password-wrap">
+          <input id="confirmPassword" [type]="showConfirmPassword ? 'text' : 'password'" class="form-input pw-input"
+                 formControlName="confirmPassword" placeholder="Re-enter password" autocomplete="new-password" />
+          <button type="button" class="password-toggle" (click)="toggleConfirmPasswordVisibility()" tabindex="-1"
+                  [title]="showConfirmPassword ? 'Hide password' : 'Show password'">
+            <i [class]="showConfirmPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+          </button>
+        </div>
+        @if (f['confirmPassword'].touched && f['confirmPassword'].errors) {
+          <span class="auth-field-error">
+            @if (f['confirmPassword'].errors['required']) { Please confirm password }
+            @else if (f['confirmPassword'].errors['passwordMismatch']) { Passwords do not match }
+          </span>
+        }
+      </div>
+
+      <!-- Terms -->
+      <label class="auth-checkbox" style="margin-bottom: 6px;">
+        <input type="checkbox" formControlName="terms" />
+        <span>I agree to the <a class="auth-link" href="javascript:void(0)">Terms &amp; Privacy</a></span>
+      </label>
+      @if (f['terms'].touched && f['terms'].errors) {
+        <span class="auth-field-error" style="margin-bottom: 12px;">You must accept the terms</span>
+      }
+
+      <!-- Submit -->
+      <button type="submit" class="btn btn-primary btn-full" style="margin-top: 14px;" [disabled]="isLoading">
+        @if (isLoading) {
+          <span class="spinner"></span> Creating account…
+        } @else {
+          Create Account
+        }
+      </button>
+    </form>
+
+    <!-- Footer -->
+    <p class="auth-footer">
+      Already have an account? <a routerLink="/login" class="auth-link">Sign In</a>
+    </p>
+  </div>
+</div>

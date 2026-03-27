@@ -1,0 +1,78 @@
+/* Register — component-specific styles (global auth classes in styles.scss) */
+
+.pw-input {
+  padding-right: 44px !important;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.auth-field-error {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--accent4, #ef4444);
+  margin-top: 5px;
+  padding-left: 2px;
+}
+
+.auth-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  margin-bottom: 20px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 10px;
+  color: var(--accent4, #ef4444);
+  font-size: 0.85rem;
+}
+
+/* Password strength */
+.strength-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.strength-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--glass-border);
+  border-radius: 100px;
+  overflow: hidden;
+}
+
+.strength-fill {
+  height: 100%;
+  border-radius: 100px;
+  transition: width 0.35s ease, background 0.35s ease;
+
+  &.weak   { background: #ef4444; }
+  &.fair   { background: #fbbf24; }
+  &.good   { background: #34d399; }
+  &.strong { background: #2cb67d; }
+}
+
+.strength-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+
+  &.weak   { color: #ef4444; }
+  &.fair   { color: #fbbf24; }
+  &.good   { color: #34d399; }
+  &.strong { color: #2cb67d; }
+}
+
+@media (max-width: 480px) {
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}

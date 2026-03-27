@@ -1,0 +1,6 @@
+# Age Progression Pipeline - Additional Dependencies
+# Only packages NOT already in the base environment
+# Base environment already has: torch, torchvision, opencv-python, pillow,
+# numpy, scipy, requests, gdown, scikit-image, tqdm, jinja2
+
+facenet-pytorch>=2.5.0    # FaceNet identity preservation metrics (optional)

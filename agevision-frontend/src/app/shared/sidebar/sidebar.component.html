@@ -1,0 +1,63 @@
+<nav id="sidebar" [class.open]="isOpen">
+  <!-- Logo -->
+  <div class="logo">
+    <div class="logo-icon">
+      <app-logo width="28" height="19"></app-logo>
+    </div>
+    <span class="logo-text">AgeVision<span class="gradient-text"> AI</span></span>
+  </div>
+
+  <!-- Nav Sections -->
+  <div class="nav-sections">
+    <!-- Main -->
+    <div class="nav-section">
+      <div class="nav-section-label">Main</div>
+      <a class="nav-item" routerLink="/dashboard" routerLinkActive="active" (click)="onNavClick()">
+        <span class="nav-icon"><i class="fa-solid fa-house"></i></span>
+        <span class="nav-label">Dashboard</span>
+      </a>
+      <a class="nav-item" routerLink="/predict" routerLinkActive="active" (click)="onNavClick()">
+        <span class="nav-icon"><i class="fa-solid fa-microscope"></i></span>
+        <span class="nav-label">Predict</span>
+        <span class="nav-badge chip-green">Live</span>
+      </a>
+      <a class="nav-item" routerLink="/progress" routerLinkActive="active" (click)="onNavClick()">
+        <span class="nav-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+        <span class="nav-label">Progression</span>
+      </a>
+    </div>
+
+    <!-- Data -->
+    <div class="nav-section">
+      <div class="nav-section-label">Data</div>
+      <a class="nav-item" routerLink="/history" routerLinkActive="active" (click)="onNavClick()">
+        <span class="nav-icon"><i class="fa-solid fa-folder-open"></i></span>
+        <span class="nav-label">History</span>
+      </a>
+      <a class="nav-item" routerLink="/analytics" routerLinkActive="active" (click)="onNavClick()">
+        <span class="nav-icon"><i class="fa-solid fa-chart-bar"></i></span>
+        <span class="nav-label">Analytics</span>
+      </a>
+    </div>
+
+    <!-- System -->
+    <div class="nav-section">
+      <div class="nav-section-label">System</div>
+      <a class="nav-item" routerLink="/settings" routerLinkActive="active" (click)="onNavClick()">
+        <span class="nav-icon"><i class="fa-solid fa-gear"></i></span>
+        <span class="nav-label">Settings</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Footer Avatar -->
+  <div class="sidebar-footer">
+    <div class="avatar-row">
+      <div class="av-circle">{{ auth.getUserInitials() }}</div>
+      <div class="av-info">
+        <div class="av-name">{{ auth.getDisplayName() }}</div>
+        <div class="av-role">Researcher</div>
+      </div>
+    </div>
+  </div>
+</nav>

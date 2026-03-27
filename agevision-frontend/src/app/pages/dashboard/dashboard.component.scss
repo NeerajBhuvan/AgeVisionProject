@@ -1,0 +1,214 @@
+.dash-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.dash-main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.dash-bottom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+/* Loading */
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 60px 20px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 20px;
+  color: var(--muted);
+  text-align: center;
+  gap: 8px;
+
+  i { font-size: 2rem; opacity: 0.4; }
+  p { font-size: 0.8rem; margin: 0; }
+}
+
+/* Quick Drop */
+.quick-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  border: 2px dashed rgba(127, 90, 240, 0.25);
+  border-radius: 14px;
+  background: var(--drop-bg);
+  cursor: pointer;
+  transition: background 0.25s, border-color 0.25s;
+  text-align: center;
+
+  &:hover {
+    background: var(--drop-hover-bg);
+    border-color: rgba(127, 90, 240, 0.45);
+  }
+}
+
+.drop-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: rgba(127, 90, 240, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  margin-bottom: 12px;
+  color: var(--accent1);
+}
+
+.drop-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--text) !important;
+}
+
+.drop-sub {
+  font-size: 0.75rem;
+  color: var(--muted) !important;
+}
+
+.drop-formats {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+/* Activity */
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--surface);
+
+  &:last-child { border-bottom: none; }
+}
+
+.act-thumb {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 10px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  color: var(--text);
+}
+
+.act-body { flex: 1; min-width: 0; }
+.act-title { font-size: 0.82rem; font-weight: 600; color: var(--text); }
+.act-sub { font-size: 0.68rem; color: var(--muted); margin-top: 2px; }
+.act-age {
+  font-size: 0.9rem;
+  font-weight: 700;
+  font-family: "Space Mono", monospace;
+  color: var(--accent1);
+}
+
+/* Weekly Chart */
+.chart-area {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 140px;
+  padding-top: 10px;
+}
+
+.chart-bar-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.chart-bar {
+  width: 100%;
+  border-radius: 6px 6px 0 0;
+  min-height: 4px;
+  transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chart-label {
+  font-size: 0.6rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* Quick Actions */
+.quick-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.qa-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--text);
+  transition: background 0.2s, border-color 0.2s;
+
+  &:hover {
+    background: rgba(127, 90, 240, 0.08);
+    border-color: rgba(127, 90, 240, 0.25);
+  }
+
+  span {
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+}
+
+.qa-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+
+  &.icon-purple { background: rgba(127, 90, 240, 0.15); color: var(--accent1); }
+  &.icon-green { background: rgba(44, 182, 125, 0.15); color: var(--accent2); }
+  &.icon-orange { background: rgba(255, 137, 6, 0.15); color: var(--accent3); }
+  &.icon-deepurple { background: rgba(91, 33, 182, 0.15); color: #7f5af0; }
+}
+
+@media (max-width: 1100px) {
+  .dash-main-grid, .dash-bottom-grid { grid-template-columns: 1fr; }
+  .dash-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}

@@ -1,0 +1,169 @@
+<div class="page">
+  <div class="section-title"><i class="fa-solid fa-chart-bar"></i> Analytics <span class="gradient-text">Dashboard</span></div>
+  <div class="section-sub">Insights and performance metrics for your age analysis.</div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading-state">
+    <i class="fa-solid fa-spinner fa-spin"></i> Loading analytics...
+  </div>
+
+  <ng-container *ngIf="!loading">
+    <!-- KPI Row -->
+    <div class="analytics-top">
+      <div class="card card-p">
+        <div class="stat-card">
+          <div class="stat-icon icon-purple"><i class="fa-solid fa-chart-bar"></i></div>
+          <div class="stat-body">
+            <p>Total Analyses</p>
+            <h3>{{ totalAnalyses }}</h3>
+            <div class="stat-trend trend-up" *ngIf="weekPredictions + weekProgressions > 0">+{{ weekPredictions + weekProgressions }} this week</div>
+            <div class="stat-trend" *ngIf="weekPredictions + weekProgressions === 0">No activity this week</div>
+          </div>
+        </div>
+      </div>
+      <div class="card card-p">
+        <div class="stat-card">
+          <div class="stat-icon icon-green"><i class="fa-solid fa-bullseye"></i></div>
+          <div class="stat-body">
+            <p>Avg Confidence</p>
+            <h3>{{ avgConfidence > 0 ? (avgConfidence | number:'1.1-1') + '%' : '--' }}</h3>
+            <div class="stat-trend">Across all predictions</div>
+          </div>
+        </div>
+      </div>
+      <div class="card card-p">
+        <div class="stat-card">
+          <div class="stat-icon icon-orange"><i class="fa-solid fa-cake-candles"></i></div>
+          <div class="stat-body">
+            <p>Avg Predicted Age</p>
+            <h3>{{ avgAge > 0 ? (avgAge | number:'1.0-0') : '--' }}</h3>
+            <div class="stat-trend">From {{ totalPredictions }} predictions</div>
+          </div>
+        </div>
+      </div>
+      <div class="card card-p">
+        <div class="stat-card">
+          <div class="stat-icon icon-deepurple"><i class="fa-solid fa-masks-theater"></i></div>
+          <div class="stat-body">
+            <p>Progressions</p>
+            <h3>{{ totalProgressions }}</h3>
+            <div class="stat-trend trend-up" *ngIf="weekProgressions > 0">+{{ weekProgressions }} this week</div>
+            <div class="stat-trend" *ngIf="weekProgressions === 0">No progressions this week</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main 2-col -->
+    <div class="analytics-main">
+      <!-- Bar Chart -->
+      <div class="card card-p">
+        <div class="section-title" style="font-size:0.95rem;margin-bottom:14px"><i class="fa-solid fa-chart-line"></i> Weekly Activity</div>
+        <div class="chart-area" *ngIf="dailyCounts.length > 0">
+          <div class="chart-bar-wrap" *ngFor="let b of dailyCounts">
+            <div class="chart-bar" [style.height.%]="(b.count / getMaxDailyCount()) * 100"
+                 style="background:linear-gradient(180deg,var(--accent1),var(--accent2))"></div>
+            <div class="chart-count">{{ b.count }}</div>
+            <div class="chart-label">{{ getDayLabel(b.date) }}</div>
+          </div>
+        </div>
+        <div class="empty-state" *ngIf="dailyCounts.length === 0">
+          <p>No weekly data available</p>
+        </div>
+      </div>
+
+      <!-- Age Distribution -->
+      <div class="card card-p">
+        <div class="section-title" style="font-size:0.95rem;margin-bottom:14px"><i class="fa-solid fa-bullseye"></i> Age Distribution</div>
+        <ng-container *ngIf="ageDist.length > 0">
+          <div class="donut-wrap">
+            <svg viewBox="0 0 120 120" class="donut-svg">
+              <circle cx="60" cy="60" r="52" fill="none" stroke="var(--chart-track)" stroke-width="12" />
+              <circle *ngFor="let seg of ageDonutSegments"
+                      cx="60" cy="60" r="52" fill="none"
+                      [attr.stroke]="seg.color" stroke-width="12"
+                      [attr.stroke-dasharray]="(seg.pct * 3.267) + ' ' + (326.7 - seg.pct * 3.267)"
+                      [attr.stroke-dashoffset]="-(seg.offset * 3.267)"
+                      stroke-linecap="round" />
+            </svg>
+          </div>
+          <div class="age-dist-list">
+            <div class="age-dist-row" *ngFor="let d of ageDist">
+              <span class="adr-dot" [style.background]="d.color"></span>
+              <span class="adr-label">{{ d.label }}</span>
+              <div class="bar-track" style="flex:1;height:5px">
+                <div class="bar-fill" [style.width.%]="d.pct" [style.background]="d.color"></div>
+              </div>
+              <span class="adr-val">{{ d.pct }}%</span>
+            </div>
+          </div>
+        </ng-container>
+        <div class="empty-state" *ngIf="ageDist.length === 0">
+          <p>No age data available yet</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Row -->
+    <div class="analytics-bottom">
+      <!-- Gender Distribution -->
+      <div class="card card-p">
+        <div class="section-title" style="font-size:0.95rem;margin-bottom:14px"><i class="fa-solid fa-venus-mars"></i> Gender Distribution</div>
+        <ng-container *ngIf="genderDist.length > 0">
+          <div class="dist-bar-list">
+            <div class="dist-bar-item" *ngFor="let g of genderDist">
+              <div class="dist-bar-header">
+                <span class="dist-bar-label">{{ g.gender }}</span>
+                <span class="dist-bar-val">{{ g.count }} ({{ getPct(g.count, totalGenderCount) }}%)</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill" [style.width.%]="getPct(g.count, totalGenderCount)" [style.background]="g.color"></div>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+        <div class="empty-state" *ngIf="genderDist.length === 0">
+          <p>No gender data available</p>
+        </div>
+      </div>
+
+      <!-- Emotion Distribution -->
+      <div class="card card-p">
+        <div class="section-title" style="font-size:0.95rem;margin-bottom:14px"><i class="fa-solid fa-face-smile"></i> Emotion Distribution</div>
+        <ng-container *ngIf="emotionDist.length > 0">
+          <div class="dist-bar-list">
+            <div class="dist-bar-item" *ngFor="let e of emotionDist">
+              <div class="dist-bar-header">
+                <span class="dist-bar-label">{{ e.emotion }}</span>
+                <span class="dist-bar-val">{{ e.count }} ({{ getPct(e.count, totalEmotionCount) }}%)</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill" [style.width.%]="getPct(e.count, totalEmotionCount)" [style.background]="e.color"></div>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+        <div class="empty-state" *ngIf="emotionDist.length === 0">
+          <p>No emotion data available</p>
+        </div>
+      </div>
+
+      <!-- Timeline -->
+      <div class="card card-p">
+        <div class="section-title" style="font-size:0.95rem;margin-bottom:14px"><i class="fa-solid fa-timeline"></i> Recent Activity</div>
+        <div class="timeline" *ngIf="recentTimeline.length > 0">
+          <div class="tl-item" *ngFor="let t of recentTimeline">
+            <div class="tl-icon"><i [class]="t.icon"></i></div>
+            <div>
+              <div class="tl-title">{{ t.title }}</div>
+              <div class="tl-meta">{{ t.meta }}</div>
+            </div>
+          </div>
+        </div>
+        <div class="empty-state" *ngIf="recentTimeline.length === 0">
+          <p>No recent activity</p>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>

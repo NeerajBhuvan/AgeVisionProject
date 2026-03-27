@@ -1,0 +1,133 @@
+<header id="topbar">
+  <!-- Page Title -->
+  <div class="topbar-title">
+    {{ pageTitle().title }} <span class="topbar-sub">— {{ pageTitle().subtitle }}</span>
+  </div>
+
+  <!-- Spacer -->
+  <div class="spacer"></div>
+
+  <!-- Search Box -->
+  <div class="search-box">
+    <span class="sb-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
+    <input type="text" placeholder="Search analyses…" [(ngModel)]="searchQuery" />
+  </div>
+
+  <!-- Theme Toggle -->
+  <button class="theme-toggle" (click)="toggleTheme()"
+    [title]="currentTheme === 'dark' ? 'Switch to light' : 'Switch to dark'">
+    <span class="theme-icon"><i [class]="currentTheme === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun'"></i></span>
+  </button>
+
+  <!-- Notification Button -->
+  <div class="notif-wrap">
+    <button class="notif-btn" title="Notifications" (click)="toggleNotifPanel()">
+      <i class="fa-solid fa-bell"></i>
+      @if (notifService.unreadCount > 0) {
+        <span class="notif-dot">{{ notifService.unreadCount > 9 ? '9+' : notifService.unreadCount }}</span>
+      }
+    </button>
+
+    @if (notifPanelOpen()) {
+      <div class="notif-panel" @fadeSlide>
+        <div class="notif-panel-header">
+          <span class="notif-panel-title">Notifications</span>
+          @if (notifService.unreadCount > 0) {
+            <button class="notif-mark-all" (click)="notifService.markAllAsRead()">Mark all read</button>
+          }
+        </div>
+
+        <div class="notif-panel-list">
+          @if (notifService.notifications.length === 0) {
+            <div class="notif-empty">
+              <i class="fa-regular fa-bell-slash"></i>
+              <span>No notifications yet</span>
+            </div>
+          }
+          @for (n of notifService.notifications; track n.id) {
+            <div class="notif-item" [class.unread]="!n.read" (click)="onNotifClick(n)">
+              <div class="notif-item-icon" [attr.data-type]="n.type">
+                <i [class]="n.icon"></i>
+              </div>
+              <div class="notif-item-body">
+                <div class="notif-item-title">{{ n.title }}</div>
+                <div class="notif-item-msg">{{ n.message }}</div>
+                <div class="notif-item-time">{{ notifService.timeAgo(n.timestamp) }}</div>
+              </div>
+              <button class="notif-item-close" (click)="removeNotif($event, n.id)" title="Dismiss">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+          }
+        </div>
+
+        @if (notifService.notifications.length > 0) {
+          <div class="notif-panel-footer">
+            <button class="notif-clear-all" (click)="notifService.clearAll()">Clear all</button>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Avatar Dropdown -->
+  <div class="topbar-avatar-wrap">
+    <div class="topbar-avatar" (click)="toggleAvatarDropdown()">
+      {{ authService.getUserInitials() }}
+      <span class="status-badge" [class.active]="isUserActive()" [class.inactive]="!isUserActive()"></span>
+    </div>
+
+    @if (avatarDropdownOpen()) {
+      <div class="avatar-dropdown open" @fadeSlide>
+        <div class="dd-header">
+          <div class="dd-name">
+            {{ authService.getDisplayName() }}
+            <span class="dd-status" [class.active]="isUserActive()">
+              <span class="dd-status-dot"></span> {{ isUserActive() ? 'Active' : 'Inactive' }}
+            </span>
+          </div>
+          <div class="dd-email">{{ currentUser?.email || '' }}</div>
+          <div class="dd-time"><i class="fa-regular fa-clock"></i> {{ currentTime }}</div>
+        </div>
+        <a class="dd-item" routerLink="/settings" (click)="navigateToSettings('profile')">
+          <span class="dd-icon"><i class="fa-solid fa-gear"></i></span> Settings
+        </a>
+        <div class="dd-divider"></div>
+        <div class="dd-item dd-logout" (click)="openLogoutModal()">
+          <span class="dd-icon"><i class="fa-solid fa-right-from-bracket"></i></span> Sign Out
+        </div>
+      </div>
+    }
+  </div>
+</header>
+
+<!-- Toast Notification -->
+@if (activeToast) {
+  <div class="toast-container">
+    <div class="toast" [attr.data-type]="activeToast.type" @fadeSlide>
+      <div class="toast-icon" [attr.data-type]="activeToast.type">
+        <i [class]="activeToast.icon"></i>
+      </div>
+      <div class="toast-body">
+        <div class="toast-title">{{ activeToast.title }}</div>
+        <div class="toast-msg">{{ activeToast.message }}</div>
+      </div>
+      <button class="toast-close" (click)="dismissToast()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+  </div>
+}
+
+<!-- Logout Confirmation Modal -->
+<div class="modal-overlay" [class.open]="showLogoutModal" (click)="closeLogoutModal()">
+  <div class="modal-card card" (click)="$event.stopPropagation()">
+    <div class="modal-icon"><i class="fa-solid fa-hand"></i></div>
+    <div class="modal-title">Sign Out?</div>
+    <div class="modal-sub">Are you sure you want to sign out of your account? You'll need to log in again to access your data.</div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" style="flex:1" (click)="closeLogoutModal()">Cancel</button>
+      <button class="btn btn-primary" style="flex:1;background:linear-gradient(135deg,var(--accent4),#c52626)" (click)="confirmLogout()">Sign Out</button>
+    </div>
+  </div>
+</div>
