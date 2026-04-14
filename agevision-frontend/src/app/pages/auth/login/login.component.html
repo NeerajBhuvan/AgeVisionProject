@@ -8,11 +8,16 @@
     <h2 class="auth-title">Welcome Back</h2>
     <p class="auth-sub">Sign in to continue to AgeVision AI</p>
 
-    <!-- Error -->
+    <!-- Error / Suspension Warning -->
     @if (errorMessage) {
-      <div class="auth-error">
-        <span><i class="fa-solid fa-triangle-exclamation"></i></span>
-        <span>{{ errorMessage }}</span>
+      <div class="auth-error" [class.auth-warning]="isSuspended">
+        <span>
+          <i [class]="isSuspended ? 'fa-solid fa-user-slash' : 'fa-solid fa-triangle-exclamation'"></i>
+        </span>
+        <span>
+          @if (isSuspended) { <strong>Account suspended.</strong> }
+          {{ errorMessage }}
+        </span>
       </div>
     }
 

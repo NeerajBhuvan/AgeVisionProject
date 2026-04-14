@@ -7,12 +7,6 @@
   <!-- Spacer -->
   <div class="spacer"></div>
 
-  <!-- Search Box -->
-  <div class="search-box">
-    <span class="sb-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
-    <input type="text" placeholder="Search analyses…" [(ngModel)]="searchQuery" />
-  </div>
-
   <!-- Theme Toggle -->
   <button class="theme-toggle" (click)="toggleTheme()"
     [title]="currentTheme === 'dark' ? 'Switch to light' : 'Switch to dark'">
@@ -92,6 +86,11 @@
         <a class="dd-item" routerLink="/settings" (click)="navigateToSettings('profile')">
           <span class="dd-icon"><i class="fa-solid fa-gear"></i></span> Settings
         </a>
+        @if (currentUser?.is_admin) {
+          <a class="dd-item" routerLink="/admin" (click)="avatarDropdownOpen.set(false)">
+            <span class="dd-icon"><i class="fa-solid fa-shield-halved"></i></span> Admin Panel
+          </a>
+        }
         <div class="dd-divider"></div>
         <div class="dd-item dd-logout" (click)="openLogoutModal()">
           <span class="dd-icon"><i class="fa-solid fa-right-from-bracket"></i></span> Sign Out

@@ -1,11 +1,13 @@
 """
 Age Progression Pipeline
 =========================
-Supports two GAN models:
+Supports three models:
   - SAM: Style-based Age Manipulation (pSp + StyleGAN2). Target-age control (0-100).
   - Fast-AgingGAN: CycleGAN trained on UTKFace (includes Indian faces). Young→old only.
+  - FADING: Diffusion-based face aging (Stable Diffusion + null-text inversion).
+            Bidirectional, target-age control, high-quality.
 
-Falls back to rule-based OpenCV pipeline if no GAN model is available.
+Falls back to rule-based OpenCV pipeline if no model is available.
 """
 
 import logging
@@ -33,39 +35,44 @@ class GANProgressionPipeline:
     Falls back to rule-based approach if no GAN model is available.
     """
 
-    _sam_model = None
-    _sam_model_tried = False
+    # Separate SAM singletons per variant
+    _sam_models = {}       # {'indian': SAMInference, 'ffhq': SAMInference}
+    _sam_tried = set()     # variants we already attempted to load
     _fast_aging_model = None
     _fast_aging_tried = False
+    _diffusion_model = None
+    _diffusion_tried = False
 
-    def __init__(self):
+    def __init__(self, step_callback=None):
         self.steps = []
+        self._step_callback = step_callback
 
     # ──────────────────────────────────────────────────────────
     #  Model Management (Singletons)
     # ──────────────────────────────────────────────────────────
 
     @classmethod
-    def _get_sam_model(cls):
-        """Lazy-load the SAM model (singleton across requests)."""
-        if cls._sam_model is not None:
-            return cls._sam_model
-        if cls._sam_model_tried:
+    def _get_sam_model(cls, variant: str = 'ffhq'):
+        """Lazy-load the SAM model for a given variant (singleton per variant)."""
+        if variant in cls._sam_models:
+            return cls._sam_models[variant]
+        if variant in cls._sam_tried:
             return None
 
-        cls._sam_model_tried = True
+        cls._sam_tried.add(variant)
         try:
             from .sam.inference import SAMInference
-            sam = SAMInference()
+            sam = SAMInference.get_instance(variant=variant)
             if sam.load():
-                cls._sam_model = sam
-                logger.info("SAM model loaded successfully on %s", sam.device)
-                return cls._sam_model
+                cls._sam_models[variant] = sam
+                logger.info("SAM model (%s) loaded successfully on %s",
+                            variant, sam.device)
+                return sam
             else:
-                logger.warning("SAM model checkpoint not found")
+                logger.warning("SAM model checkpoint not found for variant: %s", variant)
                 return None
         except Exception as e:
-            logger.error("Failed to load SAM model: %s", e)
+            logger.error("Failed to load SAM model (%s): %s", variant, e)
             return None
 
     @classmethod
@@ -92,26 +99,81 @@ class GANProgressionPipeline:
             return None
 
     @classmethod
+    def _get_diffusion_model(cls):
+        """Lazy-load the FADING diffusion model (singleton across requests).
+
+        Prefers Modal cloud GPU when no local CUDA GPU is available and
+        a Modal endpoint URL is configured.
+        """
+        if cls._diffusion_model is not None:
+            return cls._diffusion_model
+        if cls._diffusion_tried:
+            return None
+
+        cls._diffusion_tried = True
+        try:
+            import torch
+            from .diffusion_aging.inference import (
+                DiffusionAgingInference, ModalFADINGClient,
+                _get_modal_endpoint_url,
+            )
+
+            # If no local GPU, try Modal cloud endpoint first
+            if not torch.cuda.is_available():
+                modal_url = _get_modal_endpoint_url()
+                if modal_url:
+                    logger.info("No local GPU — using Modal cloud endpoint: %s",
+                                modal_url)
+                    client = ModalFADINGClient(modal_url)
+                    cls._diffusion_model = client
+                    return cls._diffusion_model
+                else:
+                    logger.warning(
+                        "No local GPU and no FADING_MODAL_ENDPOINT configured. "
+                        "FADING will run on CPU (very slow). Set the "
+                        "FADING_MODAL_ENDPOINT env var or Django setting to "
+                        "use Modal cloud GPU.")
+
+            model = DiffusionAgingInference()
+            if model.load():
+                cls._diffusion_model = model
+                logger.info("FADING diffusion model loaded on %s", model.device)
+                return cls._diffusion_model
+            else:
+                logger.warning("FADING checkpoint not found or download failed")
+                return None
+        except Exception as e:
+            logger.error("Failed to load FADING model: %s", e)
+            return None
+
+    @classmethod
     def is_gan_available(cls) -> bool:
         """Check if any GAN model is ready for inference."""
-        sam = cls._get_sam_model()
+        sam = cls._get_sam_model(variant='ffhq')
         if sam is not None and sam.is_ready:
             return True
         fast = cls._get_fast_aging_model()
-        return fast is not None and fast.is_ready
+        if fast is not None and fast.is_ready:
+            return True
+        diff = cls._get_diffusion_model()
+        return diff is not None and diff.is_ready
 
     # ──────────────────────────────────────────────────────────
     #  Main Entry Point
     # ──────────────────────────────────────────────────────────
 
     def run(self, image_path: str, current_age: int, target_age: int,
-            gan_model: str = 'sam') -> dict:
+            gan_model: str = 'sam', sam_variant: str = 'ffhq',
+            gender: str = 'unknown') -> dict:
         """
         Run age progression on a single image.
 
         Args:
-            gan_model: 'sam' for SAM (target-age control) or
-                       'fast_aging' for Fast-AgingGAN (young→old, Indian-inclusive).
+            gan_model: 'sam' for SAM (target-age control),
+                       'fast_aging' for Fast-AgingGAN (young→old, Indian-inclusive),
+                       or 'diffusion' for FADING (diffusion-based, bidirectional).
+            sam_variant: SAM variant to use (default 'ffhq' for FFHQ original).
+            gender: 'male', 'female', or 'unknown' (used by FADING for prompts).
 
         Returns dict with:
             - output_path, relative_path, steps, insights,
@@ -120,26 +182,40 @@ class GANProgressionPipeline:
         t0 = time.time()
         self.steps = []
 
-        if gan_model == 'fast_aging':
+        if gan_model == 'diffusion':
+            diff = self._get_diffusion_model()
+            if diff is not None and diff.is_ready:
+                result = self._run_diffusion_pipeline(
+                    image_path, current_age, target_age, diff, gender)
+            else:
+                logger.warning("FADING not available, trying SAM")
+                sam = self._get_sam_model(variant=sam_variant)
+                if sam is not None and sam.is_ready:
+                    result = self._run_sam_pipeline(
+                        image_path, current_age, target_age, sam)
+                else:
+                    result = self._run_fallback(image_path, current_age, target_age)
+        elif gan_model == 'fast_aging':
             fast = self._get_fast_aging_model()
             if fast is not None and fast.is_ready:
                 result = self._run_fast_aging_pipeline(
                     image_path, current_age, target_age, fast)
             else:
                 logger.warning("Fast-AgingGAN not available, trying SAM")
-                sam = self._get_sam_model()
+                sam = self._get_sam_model(variant=sam_variant)
                 if sam is not None and sam.is_ready:
                     result = self._run_sam_pipeline(
                         image_path, current_age, target_age, sam)
                 else:
                     result = self._run_fallback(image_path, current_age, target_age)
         else:
-            sam = self._get_sam_model()
+            sam = self._get_sam_model(variant=sam_variant)
             if sam is not None and sam.is_ready:
                 result = self._run_sam_pipeline(
                     image_path, current_age, target_age, sam)
             else:
-                logger.warning("SAM not available, trying Fast-AgingGAN")
+                logger.warning("SAM (%s) not available, trying Fast-AgingGAN",
+                               sam_variant)
                 fast = self._get_fast_aging_model()
                 if fast is not None and fast.is_ready:
                     result = self._run_fast_aging_pipeline(
@@ -152,7 +228,8 @@ class GANProgressionPipeline:
         return result
 
     def run_multi_age(self, image_path: str, current_age: int,
-                       target_ages: list, gan_model: str = 'sam') -> dict:
+                       target_ages: list, gan_model: str = 'sam',
+                       sam_variant: str = 'ffhq') -> dict:
         """
         Run age progression for multiple target ages on a single image.
 
@@ -166,7 +243,7 @@ class GANProgressionPipeline:
         t0 = time.time()
         self.steps = []
 
-        sam_model = self._get_sam_model()
+        sam_model = self._get_sam_model(variant=sam_variant)
         use_sam = sam_model is not None and sam_model.is_ready
 
         # Detect and crop face once
@@ -278,6 +355,7 @@ class GANProgressionPipeline:
             raise ValueError(f"Cannot read image: {image_path}")
 
         # Step 1: Face Alignment (FFHQ-style via dlib, or fallback crop)
+        self._notify_step_start('Face Alignment (FFHQ/dlib)', '\U0001f4cd')
         step_t = time.time()
         aligned_pil = sam_model.align_face(image_path)
 
@@ -293,6 +371,7 @@ class GANProgressionPipeline:
                               time.time() - step_t)
 
         # Step 2: SAM GAN Inference — direct output, no post-processing
+        self._notify_step_start('SAM Age Transform', '\U0001f9ec')
         step_t = time.time()
         try:
             output_image = sam_model.transform_face(face_crop, target_age)
@@ -302,6 +381,7 @@ class GANProgressionPipeline:
         self._record_step('SAM Age Transform', '\U0001f9ec', time.time() - step_t)
 
         # Step 3: Quality Assessment
+        self._notify_step_start('Quality Assessment', '\U0001f4ca')
         step_t = time.time()
         insights = self._compute_insights(current_age, target_age, output_image, face_crop)
         self._record_step('Quality Assessment', '\U0001f4ca', time.time() - step_t)
@@ -337,6 +417,7 @@ class GANProgressionPipeline:
             raise ValueError(f"Cannot read image: {image_path}")
 
         # Step 1: Face Detection & Crop
+        self._notify_step_start('Face Detection & Crop', '\U0001f441\ufe0f')
         step_t = time.time()
         face_crop, _ = self._simple_face_crop(img_bgr)
         # Resize to 512x512 for Fast-AgingGAN
@@ -345,6 +426,7 @@ class GANProgressionPipeline:
                           time.time() - step_t)
 
         # Step 2: Fast-AgingGAN Inference
+        self._notify_step_start('Fast-AgingGAN Transform', '\U0001f9ec')
         step_t = time.time()
         try:
             output_image = fast_model.transform_face(face_crop_512, target_age)
@@ -354,6 +436,7 @@ class GANProgressionPipeline:
         self._record_step('Fast-AgingGAN Transform', '\U0001f9ec', time.time() - step_t)
 
         # Step 3: Quality Assessment
+        self._notify_step_start('Quality Assessment', '\U0001f4ca')
         step_t = time.time()
         insights = self._compute_insights(current_age, target_age, output_image, face_crop_512)
         self._record_step('Quality Assessment', '\U0001f4ca', time.time() - step_t)
@@ -370,6 +453,66 @@ class GANProgressionPipeline:
             'relative_path': f"progressions/{fname}",
             'insights': insights,
             'model_type': 'Fast-AgingGAN',
+        }
+
+    # ──────────────────────────────────────────────────────────
+    #  FADING Diffusion Pipeline
+    # ──────────────────────────────────────────────────────────
+
+    def _run_diffusion_pipeline(self, image_path: str, current_age: int,
+                                target_age: int, diff_model,
+                                gender: str = 'unknown') -> dict:
+        """Run FADING diffusion-based age transformation.
+
+        Supports bidirectional aging with target-age control.
+        Uses Stable Diffusion with null-text inversion + prompt-to-prompt editing.
+        """
+
+        img_bgr = cv2.imread(image_path)
+        if img_bgr is None:
+            raise ValueError(f"Cannot read image: {image_path}")
+
+        # Step 1: Face Detection & Crop
+        self._notify_step_start('Face Detection & Crop', '\U0001f441\ufe0f')
+        step_t = time.time()
+        face_crop, _ = self._simple_face_crop(img_bgr)
+        face_crop_512 = cv2.resize(face_crop, (512, 512))
+        self._record_step('Face Detection & Crop', '\U0001f441\ufe0f',
+                          time.time() - step_t)
+
+        # Step 2: FADING Diffusion Inference
+        self._notify_step_start('FADING Diffusion Transform', '\U0001f9ec')
+        step_t = time.time()
+        try:
+            output_image = diff_model.transform_face(
+                face_crop_512, target_age,
+                current_age=current_age, gender=gender)
+        except Exception as e:
+            logger.error("FADING inference failed: %s, using fallback", e)
+            return self._run_fallback(image_path, current_age, target_age)
+        self._record_step('FADING Diffusion Transform', '\U0001f9ec',
+                          time.time() - step_t)
+
+        # Step 3: Quality Assessment
+        self._notify_step_start('Quality Assessment', '\U0001f4ca')
+        step_t = time.time()
+        insights = self._compute_insights(current_age, target_age,
+                                          output_image, face_crop_512)
+        self._record_step('Quality Assessment', '\U0001f4ca',
+                          time.time() - step_t)
+
+        # Save output
+        output_dir = os.path.join(settings.MEDIA_ROOT, 'progressions')
+        os.makedirs(output_dir, exist_ok=True)
+        fname = f"fading_diff_{uuid.uuid4().hex[:12]}.jpg"
+        output_path = os.path.join(output_dir, fname)
+        cv2.imwrite(output_path, output_image, [cv2.IMWRITE_JPEG_QUALITY, 95])
+
+        return {
+            'output_path': output_path,
+            'relative_path': f"progressions/{fname}",
+            'insights': insights,
+            'model_type': 'FADING-Diffusion',
         }
 
     # ──────────────────────────────────────────────────────────
@@ -402,15 +545,27 @@ class GANProgressionPipeline:
     #  Utilities
     # ──────────────────────────────────────────────────────────
 
+    def _notify_step_start(self, label: str, icon: str):
+        """Notify that a pipeline step is starting (for SSE streaming)."""
+        if self._step_callback:
+            self._step_callback({
+                'label': label,
+                'icon': icon,
+                'status': 'running',
+            })
+
     def _record_step(self, label: str, icon: str, elapsed):
         """Record a completed pipeline step."""
         time_ms = elapsed * 1000 if isinstance(elapsed, float) and elapsed < 100 else elapsed
-        self.steps.append({
+        step = {
             'label': label,
             'icon': icon,
             'status': 'done',
             'time_ms': round(time_ms, 2),
-        })
+        }
+        self.steps.append(step)
+        if self._step_callback:
+            self._step_callback(step)
 
     @staticmethod
     def _simple_face_crop(img_bgr: np.ndarray) -> tuple:

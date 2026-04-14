@@ -21,6 +21,10 @@
         <span class="nav-label">Predict</span>
         <span class="nav-badge chip-green">Live</span>
       </a>
+      <a class="nav-item" routerLink="/batch-predict" routerLinkActive="active" (click)="onNavClick()">
+        <span class="nav-icon"><i class="fa-solid fa-layer-group"></i></span>
+        <span class="nav-label">Batch Predict</span>
+      </a>
       <a class="nav-item" routerLink="/progress" routerLinkActive="active" (click)="onNavClick()">
         <span class="nav-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
         <span class="nav-label">Progression</span>
@@ -46,6 +50,15 @@
       <a class="nav-item" routerLink="/settings" routerLinkActive="active" (click)="onNavClick()">
         <span class="nav-icon"><i class="fa-solid fa-gear"></i></span>
         <span class="nav-label">Settings</span>
+      </a>
+    </div>
+
+    <!-- Admin (superusers only) -->
+    <div class="nav-section" *ngIf="auth.getCurrentUser()?.is_admin">
+      <div class="nav-section-label">Admin</div>
+      <a class="nav-item" routerLink="/admin" routerLinkActive="active" (click)="onNavClick()">
+        <span class="nav-icon"><i class="fa-solid fa-shield-halved"></i></span>
+        <span class="nav-label">Admin Panel</span>
       </a>
     </div>
   </div>

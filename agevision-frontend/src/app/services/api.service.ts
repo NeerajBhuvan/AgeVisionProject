@@ -42,6 +42,12 @@ export class ApiService {
       { headers: this.getHeaders().set('Content-Type', 'application/json') });
   }
 
+  /** Batch prediction — multipart upload with multiple `images` files. */
+  predictBatch(formData: FormData): Observable<any> {
+    return this.http.post(`${this.baseUrl}/predict/batch/`, formData,
+      { headers: this.getHeaders() });
+  }
+
   progressAge(formData: FormData): Observable<any> {
     return this.http.post(`${this.baseUrl}/progress/`, formData,
       { headers: this.getHeaders() });
@@ -81,6 +87,42 @@ export class ApiService {
 
   changePassword(data: { current_password: string; new_password: string }): Observable<any> {
     return this.http.post(`${this.baseUrl}/auth/change-password/`, data,
+      { headers: this.getHeaders() });
+  }
+
+  // Admin Panel (superuser only)
+  getAdminDashboard(): Observable<any> {
+    return this.http.get(`${this.baseUrl}/admin/dashboard/`,
+      { headers: this.getHeaders() });
+  }
+
+  getAdminUsers(page = 1, limit = 50, search = ''): Observable<any> {
+    const params: Record<string, string> = {
+      page: String(page),
+      limit: String(limit),
+    };
+    if (search) params['search'] = search;
+    return this.http.get(`${this.baseUrl}/admin/users/`,
+      { headers: this.getHeaders(), params });
+  }
+
+  getAdminUserDetail(userId: number): Observable<any> {
+    return this.http.get(`${this.baseUrl}/admin/users/${userId}/`,
+      { headers: this.getHeaders() });
+  }
+
+  suspendAdminUser(userId: number): Observable<any> {
+    return this.http.post(`${this.baseUrl}/admin/users/${userId}/suspend/`, {},
+      { headers: this.getHeaders() });
+  }
+
+  reinstateAdminUser(userId: number): Observable<any> {
+    return this.http.post(`${this.baseUrl}/admin/users/${userId}/reinstate/`, {},
+      { headers: this.getHeaders() });
+  }
+
+  getAdminSystemHealth(): Observable<any> {
+    return this.http.get(`${this.baseUrl}/admin/system/health/`,
       { headers: this.getHeaders() });
   }
 }

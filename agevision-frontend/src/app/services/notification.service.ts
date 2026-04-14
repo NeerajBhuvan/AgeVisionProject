@@ -4,8 +4,11 @@ import { AppNotification, NotificationType } from '../models/notification';
 
 @Injectable({ providedIn: 'root' })
 export class NotificationService {
-  private readonly STORAGE_KEY = 'agevision_notifications';
+  private readonly LEGACY_STORAGE_KEY = 'agevision_notifications';
   private readonly MAX_NOTIFICATIONS = 50;
+
+  /** Per-user storage key — null when no user is logged in */
+  private currentScopeKey: string | null = null;
 
   private notificationsSubject = new BehaviorSubject<AppNotification[]>([]);
   public notifications$ = this.notificationsSubject.asObservable();
@@ -14,7 +17,35 @@ export class NotificationService {
   public toast$ = this.toastSubject.asObservable();
 
   constructor() {
+    // Intentionally empty — the scope is set by AuthService once the
+    // current user is known. Notifications stay empty until then.
+  }
+
+  /**
+   * Bind the notification store to a specific user. Pass null on logout
+   * (or when no user is authenticated) to clear the in-memory list and
+   * stop persisting. Legacy unscoped storage is cleaned up on first use.
+   */
+  setUserScope(userId: number | null): void {
+    // Flush whatever is currently in memory to its previous owner's bucket
+    // before swapping scopes — guards against dropping a just-pushed notif.
+    if (this.currentScopeKey) {
+      this.saveToStorage(this.notificationsSubject.value);
+    }
+
+    // Wipe legacy unscoped key — old data belongs to nobody in particular.
+    try { localStorage.removeItem(this.LEGACY_STORAGE_KEY); } catch { /* noop */ }
+
+    if (userId == null) {
+      this.currentScopeKey = null;
+      this.notificationsSubject.next([]);
+      this.toastSubject.next(null);
+      return;
+    }
+
+    this.currentScopeKey = `agevision_notifications_${userId}`;
     this.loadFromStorage();
+    this.toastSubject.next(null);
   }
 
   get unreadCount(): number {
@@ -121,18 +152,22 @@ export class NotificationService {
   }
 
   private saveToStorage(list: AppNotification[]): void {
+    if (!this.currentScopeKey) return;
     try {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(list));
+      localStorage.setItem(this.currentScopeKey, JSON.stringify(list));
     } catch { /* storage full — ignore */ }
   }
 
   private loadFromStorage(): void {
+    if (!this.currentScopeKey) {
+      this.notificationsSubject.next([]);
+      return;
+    }
     try {
-      const raw = localStorage.getItem(this.STORAGE_KEY);
-      if (raw) {
-        const parsed: AppNotification[] = JSON.parse(raw);
-        this.notificationsSubject.next(parsed);
-      }
-    } catch { /* corrupted — ignore */ }
+      const raw = localStorage.getItem(this.currentScopeKey);
+      this.notificationsSubject.next(raw ? JSON.parse(raw) : []);
+    } catch {
+      this.notificationsSubject.next([]);
+    }
   }
 }

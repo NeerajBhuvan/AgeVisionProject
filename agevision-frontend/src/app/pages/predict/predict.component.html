@@ -4,12 +4,12 @@
 
   <!-- Mode Tabs -->
   <div class="mode-tabs">
-    <div class="mode-tab" [class.active]="mode === 'upload'" (click)="switchMode('upload')">
+    <button type="button" class="mode-tab" [class.active]="mode === 'upload'" (click)="switchMode('upload')">
       <i class="fa-solid fa-cloud-arrow-up"></i> Upload Image
-    </div>
-    <div class="mode-tab" [class.active]="mode === 'camera'" (click)="switchMode('camera')">
+    </button>
+    <button type="button" class="mode-tab" [class.active]="mode === 'camera'" (click)="switchMode('camera')">
       <i class="fa-solid fa-video"></i> Live Camera
-    </div>
+    </button>
   </div>
 
   <div class="pred-grid">
@@ -72,12 +72,17 @@
           <div class="section-title" style="font-size:0.95rem;margin-bottom:12px"><i class="fa-solid fa-user"></i> Single Face Samples</div>
           <div class="sample-sub">Click a photo to test single-face age prediction</div>
           <div class="sample-grid">
-            <div class="sample-item" *ngFor="let s of singleSamples" (click)="selectSample(s)" [class.loading]="loadingSample">
+            <button type="button" class="sample-item"
+                    *ngFor="let s of singleSamples"
+                    (click)="selectSample(s)"
+                    [class.loading]="loadingSample"
+                    [disabled]="loadingSample"
+                    [attr.aria-label]="'Use sample ' + s.label">
               <img [src]="'samples/' + s.file" [alt]="s.label" loading="lazy" />
               <div class="sample-info">
                 <span class="sample-name">{{ s.label }}</span>
               </div>
-            </div>
+            </button>
           </div>
         </div>
 
@@ -86,13 +91,18 @@
           <div class="section-title" style="font-size:0.95rem;margin-bottom:12px"><i class="fa-solid fa-users"></i> Group Samples</div>
           <div class="sample-sub">Test multi-face detection with group photos</div>
           <div class="group-sample-grid">
-            <div class="group-sample-item" *ngFor="let g of groupSamples" (click)="selectGroupSample(g)" [class.loading]="loadingSample">
+            <button type="button" class="group-sample-item"
+                    *ngFor="let g of groupSamples"
+                    (click)="selectGroupSample(g)"
+                    [class.loading]="loadingSample"
+                    [disabled]="loadingSample"
+                    [attr.aria-label]="'Use group sample ' + g.label">
               <img [src]="'samples/' + g.file" [alt]="g.label" loading="lazy" />
               <div class="sample-info">
                 <span class="sample-name">{{ g.label }}</span>
                 <span class="sample-age"><i class="fa-solid fa-users" style="font-size:0.55rem"></i> {{ g.faces }} faces</span>
               </div>
-            </div>
+            </button>
           </div>
         </div>
       </ng-container>
@@ -101,22 +111,23 @@
       <ng-container *ngIf="mode === 'camera'">
         <!-- Camera Off -->
         <div class="card card-p" *ngIf="!cameraActive && !cameraLoading">
-          <div class="cam-start-zone" (click)="startCamera()">
+          <button type="button" class="cam-start-zone" (click)="startCamera()" aria-label="Start camera">
             <div class="cam-icon"><i class="fa-solid fa-video"></i></div>
             <div class="cam-title">Start Camera</div>
             <div class="cam-sub">Click to open your camera for real-time age prediction</div>
-            <button class="btn btn-primary" style="margin-top:16px">
+            <span class="cam-cta">
               <i class="fa-solid fa-play"></i> Open Camera
-            </button>
-          </div>
+            </span>
+          </button>
           <div class="cam-selector" *ngIf="cameraList.length > 1">
             <div class="cam-selector-label">Select Camera</div>
             <div class="cam-selector-pills">
-              <div class="mpill" *ngFor="let cam of cameraList; let i = index"
-                   [class.active]="selectedCameraId === cam.deviceId"
-                   (click)="switchCamera(cam.deviceId)">
+              <button type="button" class="mpill"
+                      *ngFor="let cam of cameraList; let i = index"
+                      [class.active]="selectedCameraId === cam.deviceId"
+                      (click)="switchCamera(cam.deviceId)">
                 <i class="fa-solid fa-camera"></i> {{ cam.label || 'Camera ' + (i + 1) }}
-              </div>
+              </button>
             </div>
           </div>
         </div>
@@ -174,11 +185,12 @@
           <!-- Camera selector when active -->
           <div class="cam-selector" *ngIf="cameraList.length > 1">
             <div class="cam-selector-pills">
-              <div class="mpill" *ngFor="let cam of cameraList; let i = index"
-                   [class.active]="selectedCameraId === cam.deviceId"
-                   (click)="switchCamera(cam.deviceId)">
+              <button type="button" class="mpill"
+                      *ngFor="let cam of cameraList; let i = index"
+                      [class.active]="selectedCameraId === cam.deviceId"
+                      (click)="switchCamera(cam.deviceId)">
                 <i class="fa-solid fa-camera"></i> {{ cam.label || 'Camera ' + (i + 1) }}
-              </div>
+              </button>
             </div>
           </div>
         </div>

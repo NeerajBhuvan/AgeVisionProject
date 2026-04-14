@@ -13,4 +13,6 @@ model_paths = {
     'pretrained_psp': os.path.join(_BASE_DIR, 'checkpoints', 'psp_ffhq_encode.pt'),
     'pretrained_psp_encoder': os.path.join(_BASE_DIR, 'checkpoints', 'psp_ffhq_encode.pt'),
     'age_predictor': os.path.join(_BASE_DIR, 'checkpoints', 'dex_age_classifier.pth'),
+    # MiVOLO v2 Indian-finetuned checkpoint (optional, auto-detected by mivolo_predictor)
+    'mivolo_indian': os.path.join(_BASE_DIR, 'checkpoints', 'mivolo_indian_best.pt'),
 }

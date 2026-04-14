@@ -297,8 +297,10 @@ class AgingPipeline:
         # Slight downward warp for sagging effect
         if sag > 0.05:
             h, w = result.shape[:2]
-            map_x = np.float32([[i for i in range(w)] for _ in range(h)])
-            map_y = np.float32([[j for j in range(h)] for j in range(h)])
+            map_x, map_y = np.meshgrid(
+                np.arange(w, dtype=np.float32),
+                np.arange(h, dtype=np.float32),
+            )
 
             # Add subtle downward displacement in lower half
             for row in range(h // 2, h):

@@ -15,7 +15,13 @@ import { routeAnimations } from './route-animations';
   animations: [routeAnimations]
 })
 export class AppComponent implements OnInit, OnDestroy {
-  isAuthPage = false;
+  // Seed from the browser URL synchronously so the first render picks the
+  // correct layout. Without this, the shell (sidebar + main) would paint
+  // for one frame before NavigationEnd flips this flag on auth routes,
+  // causing a flash of the dashboard shell on the login page after refresh.
+  isAuthPage = AppComponent.isAuthPath(
+    typeof window !== 'undefined' ? window.location.pathname : '/'
+  );
   sidebarOpen = false;
   private routeSub!: Subscription;
 
@@ -30,9 +36,13 @@ export class AppComponent implements OnInit, OnDestroy {
       .pipe(filter(e => e instanceof NavigationEnd))
       .subscribe((e) => {
         const url = (e as NavigationEnd).urlAfterRedirects || (e as NavigationEnd).url;
-        this.isAuthPage = url.includes('/login') || url.includes('/register') || url.includes('/forgot-password');
+        this.isAuthPage = AppComponent.isAuthPath(url);
         if (this.isAuthPage) this.sidebarOpen = false;
       });
+  }
+
+  private static isAuthPath(url: string): boolean {
+    return url.includes('/login') || url.includes('/register') || url.includes('/forgot-password');
   }
 
   toggleSidebar(): void {

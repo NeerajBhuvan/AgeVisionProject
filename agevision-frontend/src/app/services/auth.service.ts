@@ -3,6 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, BehaviorSubject, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { NotificationService } from './notification.service';
 
 /* ── Interfaces ── */
 
@@ -15,6 +16,7 @@ export interface User {
   plan?: string;
   avatar_url?: string;
   is_active?: boolean;
+  is_admin?: boolean;
   created_at?: string;
   updated_at?: string;
   last_login?: string;
@@ -85,7 +87,8 @@ export class AuthService {
 
   constructor(
     private http: HttpClient,
-    private router: Router
+    private router: Router,
+    private notifService: NotificationService
   ) {
     // Restore session if token exists
     const token = this.getAccessToken();
@@ -94,8 +97,11 @@ export class AuthService {
       if (storedUser) {
         this.currentUserSubject.next(storedUser);
         this.isAuthenticatedSubject.next(true);
+        this.notifService.setUserScope(storedUser.id);
       }
       this.loadUserProfile();
+    } else {
+      this.notifService.setUserScope(null);
     }
   }
 
@@ -119,14 +125,28 @@ export class AuthService {
       );
   }
 
-  /** Refresh the access token using the stored refresh token */
-  refreshToken(): Observable<{ access: string }> {
+  /**
+   * Refresh the access token using the stored refresh token.
+   *
+   * The backend has ROTATE_REFRESH_TOKENS=True, so the response carries a
+   * brand-new refresh token alongside the new access token, and the old
+   * refresh token is blacklisted server-side. We MUST persist the rotated
+   * refresh token immediately — if we keep the old one, the next refresh
+   * call will be rejected (blacklisted) and the user gets logged out.
+   */
+  refreshToken(): Observable<{ access: string; refresh?: string }> {
     const refresh = this.getRefreshToken();
     return this.http
-      .post<{ access: string }>(`${this.baseUrl}/auth/token/refresh/`, { refresh })
+      .post<{ access: string; refresh?: string }>(
+        `${this.baseUrl}/auth/token/refresh/`,
+        { refresh }
+      )
       .pipe(
         tap(res => {
           localStorage.setItem(this.ACCESS_KEY, res.access);
+          if (res.refresh) {
+            localStorage.setItem(this.REFRESH_KEY, res.refresh);
+          }
         })
       );
   }
@@ -137,6 +157,7 @@ export class AuthService {
     localStorage.removeItem(this.USER_KEY);
     this.currentUserSubject.next(null);
     this.isAuthenticatedSubject.next(false);
+    this.notifService.setUserScope(null);
     this.router.navigate(['/login']);
   }
 
@@ -167,20 +188,22 @@ export class AuthService {
 
   /** Fetch profile from backend and update subjects */
   loadUserProfile(): void {
-    const headers = this.authHeaders();
+    // Let the auth interceptor attach the token — this way a refreshed
+    // access token (after a 401) is picked up on the retry automatically.
     this.http
-      .get<User>(`${this.baseUrl}/auth/profile/`, { headers })
+      .get<User>(`${this.baseUrl}/auth/profile/`)
       .subscribe({
         next: (user) => {
           this.currentUserSubject.next(user);
           this.isAuthenticatedSubject.next(true);
+          this.notifService.setUserScope(user.id);
           localStorage.setItem(this.USER_KEY, JSON.stringify(user));
         },
         error: () => {
-          // Token may be expired / invalid
-          this.clearTokens();
-          this.currentUserSubject.next(null);
-          this.isAuthenticatedSubject.next(false);
+          // The interceptor already handles 401s (refresh + retry, or
+          // full logout if refresh fails). Transient errors (network,
+          // 5xx) must NOT clear the session — the cached user still
+          // drives the UI until the next successful profile fetch.
         }
       });
   }
@@ -244,6 +267,7 @@ export class AuthService {
     this.currentUserSubject.next(response.user);
     this.isAuthenticatedSubject.next(true);
     localStorage.setItem(this.USER_KEY, JSON.stringify(response.user));
+    this.notifService.setUserScope(response.user.id);
   }
 
   /** Build Authorization header */

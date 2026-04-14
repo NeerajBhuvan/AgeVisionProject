@@ -16,6 +16,7 @@ export class LoginComponent {
   loginForm: FormGroup;
   isLoading = false;
   errorMessage = '';
+  isSuspended = false;
   showPassword = false;
   private returnUrl = '/dashboard';
 
@@ -31,8 +32,23 @@ export class LoginComponent {
       rememberMe: [false]
     });
 
-    // Capture the returnUrl from query params (set by authGuard)
-    this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
+    // Capture the returnUrl from query params (set by authGuard).
+    // Only allow internal, same-origin paths to prevent open-redirect attacks
+    // via a crafted ?returnUrl=https://evil.example link.
+    const requested = this.route.snapshot.queryParams['returnUrl'];
+    this.returnUrl = LoginComponent.sanitizeReturnUrl(requested);
+  }
+
+  /**
+   * Accept only internal paths beginning with a single "/" and not "//"
+   * (protocol-relative) or "/\\" (backslash trick). Anything else — absolute
+   * URLs, javascript:, data:, empty — falls back to /dashboard.
+   */
+  private static sanitizeReturnUrl(url: unknown): string {
+    if (typeof url !== 'string' || url.length === 0) return '/dashboard';
+    if (!url.startsWith('/')) return '/dashboard';
+    if (url.startsWith('//') || url.startsWith('/\\')) return '/dashboard';
+    return url;
   }
 
   /** Submit login form */
@@ -46,6 +62,7 @@ export class LoginComponent {
 
     this.isLoading = true;
     this.errorMessage = '';
+    this.isSuspended = false;
 
     const { username, password } = this.loginForm.value;
 
@@ -56,6 +73,7 @@ export class LoginComponent {
       },
       error: (err) => {
         this.isLoading = false;
+        this.isSuspended = !!err.error?.account_suspended;
         this.errorMessage =
           err.error?.detail ||
           err.error?.error ||

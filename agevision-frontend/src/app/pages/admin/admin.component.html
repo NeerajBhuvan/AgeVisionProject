@@ -1,0 +1,304 @@
+<div class="page">
+  <div class="section-title"><i class="fa-solid fa-shield-halved"></i> Admin <span class="gradient-text">Panel</span></div>
+  <div class="section-sub">Platform-wide monitoring, user management, and system health.</div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading-state">
+    <i class="fa-solid fa-spinner fa-spin"></i> Loading admin data...
+  </div>
+
+  <ng-container *ngIf="!loading">
+    <!-- KPI Row -->
+    <div class="admin-top">
+      <div class="card card-p">
+        <div class="stat-card">
+          <div class="stat-icon icon-purple"><i class="fa-solid fa-users"></i></div>
+          <div class="stat-body">
+            <p>Total Users</p>
+            <h3>{{ totalUsers }}</h3>
+            <div class="stat-trend">{{ activeUsers }} active</div>
+          </div>
+        </div>
+      </div>
+      <div class="card card-p">
+        <div class="stat-card">
+          <div class="stat-icon icon-green"><i class="fa-solid fa-chart-line"></i></div>
+          <div class="stat-body">
+            <p>Total Predictions</p>
+            <h3>{{ totalPredictions }}</h3>
+            <div class="stat-trend" *ngIf="avgPredictionTimeMs > 0">Avg {{ avgPredictionTimeMs | number:'1.0-0' }} ms</div>
+            <div class="stat-trend" *ngIf="avgPredictionTimeMs === 0">No data yet</div>
+          </div>
+        </div>
+      </div>
+      <div class="card card-p">
+        <div class="stat-card">
+          <div class="stat-icon icon-orange"><i class="fa-solid fa-masks-theater"></i></div>
+          <div class="stat-body">
+            <p>Total Progressions</p>
+            <h3>{{ totalProgressions }}</h3>
+            <div class="stat-trend" *ngIf="avgProgressionTimeMs > 0">Avg {{ avgProgressionTimeMs | number:'1.0-0' }} ms</div>
+            <div class="stat-trend" *ngIf="avgProgressionTimeMs === 0">No data yet</div>
+          </div>
+        </div>
+      </div>
+      <div class="card card-p">
+        <div class="stat-card">
+          <div class="stat-icon icon-deepurple"><i class="fa-solid fa-bullseye"></i></div>
+          <div class="stat-body">
+            <p>Avg Confidence</p>
+            <h3>{{ avgConfidence > 0 ? (avgConfidence | number:'1.1-1') + '%' : '--' }}</h3>
+            <div class="stat-trend">Avg age {{ avgAge > 0 ? (avgAge | number:'1.0-0') : '--' }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Activity Charts Row -->
+    <div class="admin-main">
+      <div class="card card-p">
+        <div class="section-title" style="font-size:0.95rem;margin-bottom:14px">
+          <i class="fa-solid fa-chart-column"></i> Predictions — Last 14 Days
+        </div>
+        <div class="chart-area" *ngIf="predictionDailyCounts.length > 0">
+          <div class="chart-bar-wrap" *ngFor="let b of predictionDailyCounts">
+            <div class="chart-bar"
+                 [style.height.%]="(b.count / getMaxDailyCount(predictionDailyCounts)) * 100"
+                 style="background:linear-gradient(180deg,var(--accent1),var(--accent2))"></div>
+            <div class="chart-count">{{ b.count }}</div>
+          </div>
+        </div>
+        <div class="empty-state" *ngIf="predictionDailyCounts.length === 0">
+          <p>No prediction activity yet</p>
+        </div>
+      </div>
+
+      <div class="card card-p">
+        <div class="section-title" style="font-size:0.95rem;margin-bottom:14px">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> Progressions — Last 14 Days
+        </div>
+        <div class="chart-area" *ngIf="progressionDailyCounts.length > 0">
+          <div class="chart-bar-wrap" *ngFor="let b of progressionDailyCounts">
+            <div class="chart-bar"
+                 [style.height.%]="(b.count / getMaxDailyCount(progressionDailyCounts)) * 100"
+                 style="background:linear-gradient(180deg,#ff8906,#ef4444)"></div>
+            <div class="chart-count">{{ b.count }}</div>
+          </div>
+        </div>
+        <div class="empty-state" *ngIf="progressionDailyCounts.length === 0">
+          <p>No progression activity yet</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Usage Breakdown Row -->
+    <div class="admin-breakdown">
+      <div class="card card-p">
+        <div class="section-title" style="font-size:0.95rem;margin-bottom:14px">
+          <i class="fa-solid fa-microchip"></i> Age Detector Usage
+        </div>
+        <ng-container *ngIf="detectorBreakdown.length > 0">
+          <div class="dist-bar-list">
+            <div class="dist-bar-item" *ngFor="let d of detectorBreakdown">
+              <div class="dist-bar-header">
+                <span class="dist-bar-label">{{ d.label }}</span>
+                <span class="dist-bar-val">{{ d.count }} ({{ getPct(d.count, totalDetectorCount) }}%)</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill" [style.width.%]="getPct(d.count, totalDetectorCount)" [style.background]="d.color"></div>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+        <div class="empty-state" *ngIf="detectorBreakdown.length === 0">
+          <p>No detector data</p>
+        </div>
+      </div>
+
+      <div class="card card-p">
+        <div class="section-title" style="font-size:0.95rem;margin-bottom:14px">
+          <i class="fa-solid fa-layer-group"></i> GAN Model Usage
+        </div>
+        <ng-container *ngIf="ganModelBreakdown.length > 0">
+          <div class="dist-bar-list">
+            <div class="dist-bar-item" *ngFor="let g of ganModelBreakdown">
+              <div class="dist-bar-header">
+                <span class="dist-bar-label">{{ g.label }}</span>
+                <span class="dist-bar-val">{{ g.count }} ({{ getPct(g.count, totalGanModelCount) }}%)</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill" [style.width.%]="getPct(g.count, totalGanModelCount)" [style.background]="g.color"></div>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+        <div class="empty-state" *ngIf="ganModelBreakdown.length === 0">
+          <p>No GAN model data</p>
+        </div>
+      </div>
+
+      <!-- System Health -->
+      <div class="card card-p">
+        <div class="section-title" style="font-size:0.95rem;margin-bottom:14px">
+          <i class="fa-solid fa-heart-pulse"></i> System Health
+          <i *ngIf="loadingHealth" class="fa-solid fa-spinner fa-spin" style="font-size:0.75rem;margin-left:6px"></i>
+        </div>
+        <div class="health-list">
+          <div class="health-row">
+            <span class="health-label"><i class="fa-solid fa-database"></i> MongoDB</span>
+            <span class="health-pill" [class.ok]="mongodbStatus === 'connected'" [class.bad]="mongodbStatus === 'error'">
+              {{ mongodbStatus }}
+            </span>
+          </div>
+          <div class="health-row">
+            <span class="health-label"><i class="fa-solid fa-microchip"></i> GPU</span>
+            <span class="health-pill" [class.ok]="gpu.available" [class.bad]="!gpu.available">
+              {{ gpu.available ? (gpu.name || 'available') : 'unavailable' }}
+            </span>
+          </div>
+          <div class="health-row" *ngIf="gpu.available && gpu.memory_total_bytes">
+            <span class="health-label">GPU memory</span>
+            <div class="health-mem">
+              <div class="bar-track" style="height:6px;width:100%">
+                <div class="bar-fill" [style.width.%]="gpuMemPct()" style="background:var(--accent1)"></div>
+              </div>
+              <span class="health-sub">{{ formatBytes(gpu.memory_allocated_bytes) }} / {{ formatBytes(gpu.memory_total_bytes) }}</span>
+            </div>
+          </div>
+          <div class="health-row">
+            <span class="health-label"><i class="fa-solid fa-box-archive"></i> Checkpoints</span>
+            <span class="health-sub">{{ formatBytes(totalCheckpointBytes) }}</span>
+          </div>
+          <div class="health-row">
+            <span class="health-label"><i class="fa-solid fa-upload"></i> Uploads</span>
+            <span class="health-sub">{{ formatBytes(uploadsBytes) }}</span>
+          </div>
+        </div>
+        <div class="checkpoint-files" *ngIf="checkpointFiles.length > 0">
+          <div class="cf-row" *ngFor="let f of checkpointFiles">
+            <span class="cf-name" title="{{ f.name }}">{{ f.name }}</span>
+            <span class="cf-size">{{ formatBytes(f.size_bytes) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="card card-p admin-users">
+      <div class="users-header">
+        <div class="section-title" style="font-size:0.95rem;margin:0">
+          <i class="fa-solid fa-user-gear"></i> Users
+          <span class="user-count">({{ userTotal }})</span>
+        </div>
+        <div class="users-search">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text"
+                 [(ngModel)]="userSearch"
+                 (ngModelChange)="onSearchChange()"
+                 placeholder="Search by name or email..."
+                 aria-label="Search users" />
+        </div>
+      </div>
+
+      <div *ngIf="loadingUsers" class="loading-state" style="padding:30px">
+        <i class="fa-solid fa-spinner fa-spin"></i> Loading users...
+      </div>
+
+      <div class="users-table-wrap" *ngIf="!loadingUsers && users.length > 0">
+        <table class="users-table">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Email</th>
+              <th>Plan</th>
+              <th class="num">Predictions</th>
+              <th class="num">Progressions</th>
+              <th>Joined</th>
+              <th>Last Login</th>
+              <th>Status</th>
+              <th class="actions-col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let u of users">
+              <td>
+                <div class="user-cell">
+                  <div class="user-avatar">{{ (u.first_name[0] || u.username[0] || '?').toUpperCase() }}</div>
+                  <div>
+                    <div class="user-name">{{ u.first_name }} {{ u.last_name }}</div>
+                    <div class="user-handle">&#64;{{ u.username }}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="email-cell">{{ u.email }}</td>
+              <td><span class="plan-pill">{{ u.plan }}</span></td>
+              <td class="num">{{ u.prediction_count }}</td>
+              <td class="num">{{ u.progression_count }}</td>
+              <td class="date-cell">{{ shortDate(u.date_joined) }}</td>
+              <td class="date-cell">{{ shortDate(u.last_login) }}</td>
+              <td>
+                <span class="status-pill" [class.ok]="u.is_active" [class.bad]="!u.is_active">
+                  {{ u.is_active ? 'active' : 'suspended' }}
+                </span>
+                <span *ngIf="u.is_superuser" class="super-pill" title="Superuser">SUPER</span>
+              </td>
+              <td class="actions-col">
+                <button *ngIf="u.is_active && !u.is_superuser"
+                        class="btn-action btn-danger"
+                        (click)="openSuspendModal(u)">
+                  Suspend
+                </button>
+                <button *ngIf="!u.is_active"
+                        class="btn-action btn-primary"
+                        (click)="reinstateUser(u)">
+                  Reinstate
+                </button>
+                <span *ngIf="u.is_superuser && u.is_active" class="action-hint">—</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div *ngIf="!loadingUsers && users.length === 0" class="empty-state">
+        <p>No users found</p>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pager" *ngIf="!loadingUsers && userPages > 1">
+        <button class="pg-btn" [disabled]="userPage === 1" (click)="goToPage(userPage - 1)">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <button *ngFor="let p of pageNumbers"
+                class="pg-btn"
+                [class.active]="p === userPage"
+                (click)="goToPage(p)">
+          {{ p }}
+        </button>
+        <button class="pg-btn" [disabled]="userPage === userPages" (click)="goToPage(userPage + 1)">
+          <i class="fa-solid fa-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- Suspend Confirmation Modal -->
+  <div class="modal-overlay" [class.open]="showSuspendModal" (click)="closeSuspendModal()">
+    <div class="modal-card card" (click)="$event.stopPropagation()">
+      <div class="modal-icon"><i class="fa-solid fa-user-slash"></i></div>
+      <div class="modal-title">Suspend User?</div>
+      <div class="modal-sub">
+        Are you sure you want to suspend <strong>&#64;{{ pendingSuspendUser?.username }}</strong>?
+        They will no longer be able to log in until reinstated.
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" style="flex:1" (click)="closeSuspendModal()">Cancel</button>
+        <button class="btn btn-primary"
+                style="flex:1;background:linear-gradient(135deg,var(--accent4),#c52626)"
+                (click)="confirmSuspend()">
+          Suspend
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

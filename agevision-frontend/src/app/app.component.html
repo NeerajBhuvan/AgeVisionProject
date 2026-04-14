@@ -22,7 +22,7 @@
   <div id="app">
     <app-sidebar [isOpen]="sidebarOpen" (closeSidebar)="closeSidebar()"></app-sidebar>
     <div id="main">
-      <app-topbar (toggleSidebar)="toggleSidebar()"></app-topbar>
+      <app-topbar></app-topbar>
       <div id="main-content" [@routeAnimation]="getRouteAnimationData()">
         <router-outlet />
       </div>
@@ -38,6 +38,10 @@
     <a routerLink="/predict" routerLinkActive="active" class="bnav-item">
       <span class="bnav-icon"><i class="fa-solid fa-microscope"></i></span>
       <span class="bnav-label">Predict</span>
+    </a>
+    <a routerLink="/batch-predict" routerLinkActive="active" class="bnav-item">
+      <span class="bnav-icon"><i class="fa-solid fa-layer-group"></i></span>
+      <span class="bnav-label">Batch</span>
     </a>
     <a routerLink="/progress" routerLinkActive="active" class="bnav-item">
       <span class="bnav-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></span>

@@ -1,7 +1,8 @@
-import { Component, ElementRef, OnDestroy, ViewChild, ChangeDetectorRef } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApiService } from '../../services/api.service';
 import { NotificationService } from '../../services/notification.service';
+import { FileTransferService } from '../../services/file-transfer.service';
 import { PredictionResponse, FacePrediction } from '../../models/prediction';
 
 @Component({
@@ -10,7 +11,7 @@ import { PredictionResponse, FacePrediction } from '../../models/prediction';
   templateUrl: './predict.component.html',
   styleUrl: './predict.component.scss'
 })
-export class PredictComponent implements OnDestroy {
+export class PredictComponent implements OnInit, OnDestroy {
   @ViewChild('videoEl') videoRef!: ElementRef<HTMLVideoElement>;
   @ViewChild('canvasEl') canvasRef!: ElementRef<HTMLCanvasElement>;
 
@@ -75,7 +76,17 @@ export class PredictComponent implements OnDestroy {
   private predictInterval: ReturnType<typeof setInterval> | null = null;
   private readonly PREDICT_INTERVAL_MS = 1500;
 
-  constructor(private api: ApiService, private cdr: ChangeDetectorRef, private notif: NotificationService) {}
+  constructor(
+    private api: ApiService,
+    private cdr: ChangeDetectorRef,
+    private notif: NotificationService,
+    private fileTransfer: FileTransferService
+  ) {}
+
+  ngOnInit(): void {
+    const pending = this.fileTransfer.consumePendingFile();
+    if (pending) this.handleFile(pending);
+  }
 
   ngOnDestroy(): void {
     this.stopCamera();

@@ -4,12 +4,9 @@ import {
   OnDestroy,
   HostListener,
   ElementRef,
-  Output,
-  EventEmitter,
   signal
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, NavigationEnd } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 import {
@@ -32,7 +29,7 @@ interface PageMeta {
 @Component({
   selector: 'app-topbar',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, RouterLink],
   templateUrl: './topbar.component.html',
   styleUrl: './topbar.component.scss',
   animations: [
@@ -50,13 +47,10 @@ interface PageMeta {
   ]
 })
 export class TopbarComponent implements OnInit, OnDestroy {
-  @Output() toggleSidebar = new EventEmitter<void>();
-
   pageTitle = signal<PageMeta>({ title: 'Dashboard', subtitle: 'Overview' });
   avatarDropdownOpen = signal(false);
   notifPanelOpen = signal(false);
   showLogoutModal = false;
-  searchQuery = '';
   currentTheme: Theme = 'dark';
   currentUser: User | null = null;
   currentTime = '';
@@ -72,10 +66,12 @@ export class TopbarComponent implements OnInit, OnDestroy {
   private readonly pageTitles: Record<string, PageMeta> = {
     '/dashboard':  { title: 'Dashboard',      subtitle: 'Overview' },
     '/predict':    { title: 'Age Predict',     subtitle: 'Upload Image' },
+    '/batch-predict': { title: 'Batch Predict', subtitle: 'Multi-Image Run' },
     '/progress':   { title: 'Age Progress',    subtitle: 'Simulate Aging' },
     '/history':    { title: 'History',          subtitle: 'Past Analyses' },
     '/analytics':  { title: 'Analytics',        subtitle: 'Insights & Trends' },
     '/settings':   { title: 'Settings',         subtitle: 'Preferences' },
+    '/admin':      { title: 'Admin Panel',       subtitle: 'Platform Monitoring' },
   };
 
   constructor(
@@ -151,10 +147,6 @@ export class TopbarComponent implements OnInit, OnDestroy {
     const path = url.split('?')[0].split('#')[0];
     const meta = this.pageTitles[path];
     this.pageTitle.set(meta ?? { title: 'AgeVision', subtitle: 'AI' });
-  }
-
-  onToggleSidebar(): void {
-    this.toggleSidebar.emit();
   }
 
   toggleTheme(): void {

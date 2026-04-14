@@ -11,11 +11,19 @@ from .views import (
     change_password_view,
     predict_view,
     predict_camera_view,
+    batch_predict_view,
     progress_view,
+    progress_stream_view,
     history_view,
     history_delete_view,
     analytics_view,
     settings_view,
+    admin_dashboard_view,
+    admin_users_view,
+    admin_user_detail_view,
+    admin_user_suspend_view,
+    admin_user_reinstate_view,
+    admin_system_health_view,
 )
 
 urlpatterns = [
@@ -33,7 +41,9 @@ urlpatterns = [
     # Core Features
     path('predict/', predict_view, name='predict'),
     path('predict/camera/', predict_camera_view, name='predict-camera'),
+    path('predict/batch/', batch_predict_view, name='predict-batch'),
     path('progress/', progress_view, name='progress'),
+    path('progress/stream/', progress_stream_view, name='progress-stream'),
 
     # History
     path('history/', history_view, name='history'),
@@ -44,4 +54,12 @@ urlpatterns = [
 
     # Settings
     path('settings/', settings_view, name='settings'),
+
+    # Admin Panel (superuser only)
+    path('admin/dashboard/', admin_dashboard_view, name='admin-dashboard'),
+    path('admin/users/', admin_users_view, name='admin-users'),
+    path('admin/users/<int:user_id>/', admin_user_detail_view, name='admin-user-detail'),
+    path('admin/users/<int:user_id>/suspend/', admin_user_suspend_view, name='admin-user-suspend'),
+    path('admin/users/<int:user_id>/reinstate/', admin_user_reinstate_view, name='admin-user-reinstate'),
+    path('admin/system/health/', admin_system_health_view, name='admin-system-health'),
 ]

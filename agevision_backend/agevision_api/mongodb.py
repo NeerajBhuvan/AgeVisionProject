@@ -96,6 +96,11 @@ class MongoDB:
         user_settings = cls.get_collection('user_settings')
         user_settings.create_index([('user_id', ASCENDING)], unique=True)
 
+        # Batch predictions collection
+        batch_predictions = cls.get_collection('batch_predictions')
+        batch_predictions.create_index([('user_id', ASCENDING)])
+        batch_predictions.create_index([('created_at', DESCENDING)])
+
 
 class MongoUserManager:
     """Helper class for user CRUD operations in MongoDB."""
@@ -192,6 +197,60 @@ class MongoUserManager:
         """Find user by email address."""
         doc = cls._col().find_one({'email': email})
         return cls._serialize(doc) if doc else None
+
+    # ── Admin / platform helpers ─────────────────────────────────────
+    @classmethod
+    def list_all(cls, skip: int = 0, limit: int = 50,
+                 search: Optional[str] = None) -> list:
+        """Paginated list of all users, newest first.
+
+        Optional case-insensitive regex search on username/email.
+        """
+        query: dict = {}
+        if search:
+            # Escape regex metacharacters for safety
+            import re
+            safe = re.escape(search)
+            query = {
+                '$or': [
+                    {'username': {'$regex': safe, '$options': 'i'}},
+                    {'email': {'$regex': safe, '$options': 'i'}},
+                ]
+            }
+        cursor = (
+            cls._col()
+            .find(query)
+            .sort('created_at', DESCENDING)
+            .skip(skip)
+            .limit(limit)
+        )
+        return [cls._serialize(doc) for doc in cursor]
+
+    @classmethod
+    def count_all(cls, search: Optional[str] = None) -> int:
+        """Count all users (optionally filtered by search)."""
+        query: dict = {}
+        if search:
+            import re
+            safe = re.escape(search)
+            query = {
+                '$or': [
+                    {'username': {'$regex': safe, '$options': 'i'}},
+                    {'email': {'$regex': safe, '$options': 'i'}},
+                ]
+            }
+        return cls._col().count_documents(query)
+
+    @classmethod
+    def set_active(cls, django_user_id: int, is_active: bool):
+        """Mirror the Django is_active flag to the MongoDB user document."""
+        cls._col().update_one(
+            {'django_user_id': django_user_id},
+            {'$set': {
+                'is_active': bool(is_active),
+                'updated_at': datetime.now(timezone.utc),
+            }},
+        )
 
     # ── Serialisation ────────────────────────────────────────────────
     @staticmethod
@@ -462,6 +521,146 @@ class MongoPredictionManager:
             })
         return results
 
+    # ── Per-user extended analytics ─────────────────────────────────
+    @classmethod
+    def detector_distribution(cls, user_id: int) -> list:
+        """Group predictions by detector_used."""
+        pipeline = [
+            {'$match': {'user_id': user_id}},
+            {'$group': {'_id': '$detector_used', 'count': {'$sum': 1}}},
+        ]
+        return [{'detector': r['_id'] or 'Unknown', 'count': r['count']}
+                for r in cls._col().aggregate(pipeline)]
+
+    @classmethod
+    def race_distribution(cls, user_id: int) -> list:
+        """Group predictions by race."""
+        pipeline = [
+            {'$match': {'user_id': user_id}},
+            {'$group': {'_id': '$race', 'count': {'$sum': 1}}},
+            {'$sort': {'count': -1}},
+        ]
+        return [{'race': r['_id'] or 'Unknown' if r['_id'] else 'Unknown', 'count': r['count']}
+                for r in cls._col().aggregate(pipeline)]
+
+    @classmethod
+    def processing_time_stats(cls, user_id: int) -> dict:
+        """Aggregate min/max/avg processing time for a user's predictions."""
+        pipeline = [
+            {'$match': {'user_id': user_id}},
+            {'$group': {
+                '_id': None,
+                'avg': {'$avg': '$processing_time_ms'},
+                'min': {'$min': '$processing_time_ms'},
+                'max': {'$max': '$processing_time_ms'},
+            }},
+        ]
+        results = list(cls._col().aggregate(pipeline))
+        if not results:
+            return {'avg': 0, 'min': 0, 'max': 0}
+        r = results[0]
+        return {
+            'avg': round(r.get('avg') or 0, 1),
+            'min': round(r.get('min') or 0, 1),
+            'max': round(r.get('max') or 0, 1),
+        }
+
+    @classmethod
+    def confidence_distribution(cls, user_id: int) -> list:
+        """Bucket predictions by confidence ranges."""
+        ranges = [
+            ('0-20%', 0, 0.20),
+            ('20-40%', 0.20, 0.40),
+            ('40-60%', 0.40, 0.60),
+            ('60-80%', 0.60, 0.80),
+            ('80-100%', 0.80, 1.01),
+        ]
+        result = []
+        col = cls._col()
+        for label, lo, hi in ranges:
+            count = col.count_documents({
+                'user_id': user_id,
+                'confidence': {'$gte': lo, '$lt': hi},
+            })
+            result.append({'range': label, 'count': count})
+        return result
+
+    # ── Admin / platform-wide aggregations ──────────────────────────
+    @classmethod
+    def platform_count(cls) -> int:
+        return cls._col().count_documents({})
+
+    @classmethod
+    def platform_stats(cls) -> dict:
+        """Platform-wide prediction stats (no user filter)."""
+        pipeline = [
+            {'$group': {
+                '_id': None,
+                'avg_age': {'$avg': '$predicted_age'},
+                'avg_confidence': {'$avg': '$confidence'},
+                'avg_processing_time_ms': {'$avg': '$processing_time_ms'},
+                'total': {'$sum': 1},
+            }},
+        ]
+        results = list(cls._col().aggregate(pipeline))
+        if not results:
+            return {
+                'avg_age': 0,
+                'avg_confidence': 0,
+                'avg_processing_time_ms': 0,
+                'total': 0,
+            }
+        r = results[0]
+        return {
+            'avg_age': round(r.get('avg_age') or 0, 1),
+            'avg_confidence': round(r.get('avg_confidence') or 0, 2),
+            'avg_processing_time_ms': round(r.get('avg_processing_time_ms') or 0, 1),
+            'total': int(r.get('total') or 0),
+        }
+
+    @classmethod
+    def platform_gender_distribution(cls) -> list:
+        pipeline = [
+            {'$group': {'_id': '$gender', 'count': {'$sum': 1}}},
+        ]
+        return [{'gender': r['_id'], 'count': r['count']}
+                for r in cls._col().aggregate(pipeline)]
+
+    @classmethod
+    def platform_emotion_distribution(cls) -> list:
+        pipeline = [
+            {'$group': {'_id': '$emotion', 'count': {'$sum': 1}}},
+        ]
+        return [{'emotion': r['_id'], 'count': r['count']}
+                for r in cls._col().aggregate(pipeline)]
+
+    @classmethod
+    def platform_detector_breakdown(cls) -> list:
+        pipeline = [
+            {'$group': {'_id': '$detector_used', 'count': {'$sum': 1}}},
+        ]
+        return [{'detector': r['_id'], 'count': r['count']}
+                for r in cls._col().aggregate(pipeline)]
+
+    @classmethod
+    def platform_daily_counts(cls, days: int = 14) -> list:
+        """Platform-wide daily prediction counts for the past N days."""
+        now = datetime.now(timezone.utc)
+        results = []
+        for i in range(days):
+            day = now - timedelta(days=i)
+            day_start = day.replace(hour=0, minute=0, second=0, microsecond=0)
+            day_end = day_start + timedelta(days=1)
+            count = cls._col().count_documents({
+                'created_at': {'$gte': day_start, '$lt': day_end},
+            })
+            results.append({
+                'date': day_start.strftime('%Y-%m-%d'),
+                'count': count,
+            })
+        results.reverse()  # oldest → newest for charting
+        return results
+
     @staticmethod
     def _serialize(doc: dict) -> Optional[dict]:
         if doc is None:
@@ -572,6 +771,142 @@ class MongoProgressionManager:
         except Exception:
             pass
 
+    # ── Per-user extended analytics ─────────────────────────────────
+    @classmethod
+    def model_distribution(cls, user_id: int) -> list:
+        """Group progressions by model_used."""
+        pipeline = [
+            {'$match': {'user_id': user_id}},
+            {'$group': {'_id': '$model_used', 'count': {'$sum': 1}}},
+        ]
+        return [{'model': r['_id'] or 'Unknown', 'count': r['count']}
+                for r in cls._col().aggregate(pipeline)]
+
+    @classmethod
+    def processing_time_stats(cls, user_id: int) -> dict:
+        """Aggregate min/max/avg processing time for a user's progressions."""
+        pipeline = [
+            {'$match': {'user_id': user_id}},
+            {'$group': {
+                '_id': None,
+                'avg': {'$avg': '$processing_time_ms'},
+                'min': {'$min': '$processing_time_ms'},
+                'max': {'$max': '$processing_time_ms'},
+            }},
+        ]
+        results = list(cls._col().aggregate(pipeline))
+        if not results:
+            return {'avg': 0, 'min': 0, 'max': 0}
+        r = results[0]
+        return {
+            'avg': round(r.get('avg') or 0, 1),
+            'min': round(r.get('min') or 0, 1),
+            'max': round(r.get('max') or 0, 1),
+        }
+
+    @classmethod
+    def model_performance(cls, user_id: int) -> list:
+        """Per-model performance stats: count, avg processing time, avg age gap."""
+        pipeline = [
+            {'$match': {'user_id': user_id}},
+            {'$group': {
+                '_id': '$model_used',
+                'count': {'$sum': 1},
+                'avg_time_ms': {'$avg': '$processing_time_ms'},
+                'min_time_ms': {'$min': '$processing_time_ms'},
+                'max_time_ms': {'$max': '$processing_time_ms'},
+                'avg_age_gap': {'$avg': {'$subtract': ['$target_age', '$current_age']}},
+            }},
+            {'$sort': {'count': -1}},
+        ]
+        results = []
+        for r in cls._col().aggregate(pipeline):
+            results.append({
+                'model': r['_id'] or 'Unknown',
+                'count': r['count'],
+                'avg_time_ms': round(r.get('avg_time_ms') or 0, 1),
+                'min_time_ms': round(r.get('min_time_ms') or 0, 1),
+                'max_time_ms': round(r.get('max_time_ms') or 0, 1),
+                'avg_age_gap': round(r.get('avg_age_gap') or 0, 1),
+            })
+        return results
+
+    @classmethod
+    def age_transformation_stats(cls, user_id: int) -> dict:
+        """Aggregate avg current_age and avg target_age for a user."""
+        pipeline = [
+            {'$match': {'user_id': user_id}},
+            {'$group': {
+                '_id': None,
+                'avg_current': {'$avg': '$current_age'},
+                'avg_target': {'$avg': '$target_age'},
+            }},
+        ]
+        results = list(cls._col().aggregate(pipeline))
+        if not results:
+            return {'avg_current': 0, 'avg_target': 0}
+        r = results[0]
+        return {
+            'avg_current': round(r.get('avg_current') or 0, 1),
+            'avg_target': round(r.get('avg_target') or 0, 1),
+        }
+
+    # ── Admin / platform-wide aggregations ──────────────────────────
+    @classmethod
+    def platform_count(cls) -> int:
+        return cls._col().count_documents({})
+
+    @classmethod
+    def platform_stats(cls) -> dict:
+        """Platform-wide progression stats (no user filter)."""
+        pipeline = [
+            {'$group': {
+                '_id': None,
+                'avg_processing_time_ms': {'$avg': '$processing_time_ms'},
+                'avg_target_age': {'$avg': '$target_age'},
+                'total': {'$sum': 1},
+            }},
+        ]
+        results = list(cls._col().aggregate(pipeline))
+        if not results:
+            return {
+                'avg_processing_time_ms': 0,
+                'avg_target_age': 0,
+                'total': 0,
+            }
+        r = results[0]
+        return {
+            'avg_processing_time_ms': round(r.get('avg_processing_time_ms') or 0, 1),
+            'avg_target_age': round(r.get('avg_target_age') or 0, 1),
+            'total': int(r.get('total') or 0),
+        }
+
+    @classmethod
+    def platform_model_breakdown(cls) -> list:
+        pipeline = [
+            {'$group': {'_id': '$model_used', 'count': {'$sum': 1}}},
+        ]
+        return [{'model': r['_id'], 'count': r['count']}
+                for r in cls._col().aggregate(pipeline)]
+
+    @classmethod
+    def platform_daily_counts(cls, days: int = 14) -> list:
+        now = datetime.now(timezone.utc)
+        results = []
+        for i in range(days):
+            day = now - timedelta(days=i)
+            day_start = day.replace(hour=0, minute=0, second=0, microsecond=0)
+            day_end = day_start + timedelta(days=1)
+            count = cls._col().count_documents({
+                'created_at': {'$gte': day_start, '$lt': day_end},
+            })
+            results.append({
+                'date': day_start.strftime('%Y-%m-%d'),
+                'count': count,
+            })
+        results.reverse()
+        return results
+
     @staticmethod
     def _serialize(doc: dict) -> Optional[dict]:
         if doc is None:
@@ -670,4 +1005,90 @@ class MongoUserSettingsManager:
             'language': doc.get('language', 'English'),
             'timezone': doc.get('timezone', 'Asia/Kolkata'),
             'updated_at': _iso_utc(doc.get('updated_at')),
+        }
+
+
+class MongoBatchPredictionManager:
+    """CRUD operations for batch prediction records in MongoDB.
+
+    A batch document aggregates the per-image results of a single
+    multi-upload run. Each item in `results` is either a successful
+    prediction (one entry per detected face) or an `error` payload
+    when that file failed (size, decode, no face detected, etc.).
+    """
+
+    COLLECTION = 'batch_predictions'
+
+    @classmethod
+    def _col(cls):
+        return MongoDB.get_collection(cls.COLLECTION)
+
+    @classmethod
+    def create(cls, *, user_id: int, total_images: int, total_faces: int,
+               results: list, processing_time_ms: float = 0.0) -> dict:
+        """Insert a new batch prediction record and return it."""
+        now = datetime.now(timezone.utc)
+        doc = {
+            'user_id': int(user_id),
+            'total_images': int(total_images),
+            'total_faces': int(total_faces),
+            'results': results or [],
+            'processing_time_ms': round(float(processing_time_ms), 2),
+            'created_at': now,
+        }
+        result = cls._col().insert_one(doc)
+        doc['_id'] = str(result.inserted_id)
+        return cls._serialize(doc)
+
+    @classmethod
+    def get_by_user(cls, user_id: int, limit: int = 50) -> list:
+        """Fetch all batch records for a user, newest first."""
+        cursor = (
+            cls._col()
+            .find({'user_id': user_id})
+            .sort('created_at', DESCENDING)
+            .limit(limit)
+        )
+        return [cls._serialize(doc) for doc in cursor]
+
+    @classmethod
+    def get_by_id(cls, batch_id: str, user_id: int) -> Optional[dict]:
+        """Fetch a single batch record, ensuring it belongs to the user."""
+        try:
+            doc = cls._col().find_one({
+                '_id': ObjectId(batch_id),
+                'user_id': user_id,
+            })
+            return cls._serialize(doc) if doc else None
+        except Exception:
+            return None
+
+    @classmethod
+    def delete(cls, batch_id: str, user_id: int) -> bool:
+        """Delete a batch record, ensuring it belongs to the user."""
+        try:
+            result = cls._col().delete_one({
+                '_id': ObjectId(batch_id),
+                'user_id': user_id,
+            })
+            return result.deleted_count > 0
+        except Exception:
+            return False
+
+    @classmethod
+    def count(cls, user_id: int) -> int:
+        return cls._col().count_documents({'user_id': user_id})
+
+    @staticmethod
+    def _serialize(doc: dict) -> Optional[dict]:
+        if doc is None:
+            return None
+        return {
+            'id': str(doc['_id']),
+            'user_id': doc.get('user_id'),
+            'total_images': doc.get('total_images', 0),
+            'total_faces': doc.get('total_faces', 0),
+            'results': doc.get('results', []),
+            'processing_time_ms': doc.get('processing_time_ms', 0.0),
+            'created_at': _iso_utc(doc.get('created_at')),
         }

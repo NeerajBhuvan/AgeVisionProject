@@ -24,22 +24,23 @@
       </div>
       <div class="card card-p">
         <div class="stat-card">
-          <div class="stat-icon icon-green"><i class="fa-solid fa-bullseye"></i></div>
-          <div class="stat-body">
-            <p>Avg Confidence</p>
-            <h3>{{ avgConfidence > 0 ? (avgConfidence | number:'1.1-1') + '%' : '--' }}</h3>
-            <div class="stat-trend">From {{ totalPredictions }} predictions</div>
-          </div>
-        </div>
-      </div>
-      <div class="card card-p">
-        <div class="stat-card">
-          <div class="stat-icon icon-orange"><i class="fa-solid fa-camera"></i></div>
+          <div class="stat-icon icon-green"><i class="fa-solid fa-camera"></i></div>
           <div class="stat-body">
             <p>Predictions</p>
             <h3>{{ totalPredictions }}</h3>
             <div class="stat-trend trend-up" *ngIf="weekPredictions > 0">+{{ weekPredictions }} this week</div>
             <div class="stat-trend" *ngIf="weekPredictions === 0">No predictions this week</div>
+          </div>
+        </div>
+      </div>
+      <div class="card card-p">
+        <div class="stat-card">
+          <div class="stat-icon icon-orange"><i class="fa-solid fa-masks-theater"></i></div>
+          <div class="stat-body">
+            <p>Progressions</p>
+            <h3>{{ totalProgressions }}</h3>
+            <div class="stat-trend trend-up" *ngIf="weekProgressions > 0">+{{ weekProgressions }} this week</div>
+            <div class="stat-trend" *ngIf="weekProgressions === 0">No progressions this week</div>
           </div>
         </div>
       </div>
@@ -55,15 +56,20 @@
       </div>
     </div>
 
-    <!-- Main 2-col -->
-    <div class="dash-main-grid">
-      <!-- Quick Analyze -->
+    <!-- Quick Drop Zones -->
+    <div class="dash-drop-grid">
+      <!-- Age Prediction Drop -->
       <div class="card card-p">
-        <div class="section-title" style="font-size:1rem;margin-bottom:14px"><i class="fa-solid fa-bolt"></i> Quick Analyze</div>
-        <div class="quick-drop" routerLink="/predict">
-          <div class="drop-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
-          <div class="drop-title">Drop an image here</div>
-          <div class="drop-sub">or click to browse</div>
+        <div class="section-title" style="font-size:1rem;margin-bottom:14px"><i class="fa-solid fa-camera"></i> Age Prediction</div>
+        <div class="quick-drop" [class.dragging]="isDraggingPredict"
+             (dragover)="onDragOver($event, 'predict')"
+             (dragleave)="onDragLeave('predict')"
+             (drop)="onDrop($event, 'predict')"
+             (click)="predictFileInput.click()">
+          <input #predictFileInput type="file" accept="image/*" hidden (change)="onFileSelect($event, 'predict')">
+          <div class="drop-icon icon-purple"><i class="fa-solid fa-user"></i></div>
+          <div class="drop-title">Drop image to predict age</div>
+          <div class="drop-sub">Detect age, gender, emotion & more</div>
           <div class="drop-formats">
             <span class="chip chip-purple">JPG</span>
             <span class="chip chip-green">PNG</span>
@@ -72,64 +78,66 @@
         </div>
       </div>
 
-      <!-- Recent Activity -->
+      <!-- Age Progression Drop -->
       <div class="card card-p">
-        <div class="section-title" style="font-size:1rem;margin-bottom:14px"><i class="fa-solid fa-clipboard-list"></i> Recent Activity</div>
-        <div class="activity-list" *ngIf="recentActivities.length > 0">
-          <div class="activity-item" *ngFor="let a of recentActivities">
-            <div class="act-thumb"><i [class]="a.icon"></i></div>
-            <div class="act-body">
-              <div class="act-title">{{ a.title }}</div>
-              <div class="act-sub">{{ getTimeAgo(a.date) }} &bull; {{ a.model }}</div>
-            </div>
-            <div class="act-age">{{ a.age }}</div>
+        <div class="section-title" style="font-size:1rem;margin-bottom:14px"><i class="fa-solid fa-masks-theater"></i> Age Progression</div>
+        <div class="quick-drop" [class.dragging]="isDraggingProgress"
+             (dragover)="onDragOver($event, 'progress')"
+             (dragleave)="onDragLeave('progress')"
+             (drop)="onDrop($event, 'progress')"
+             (click)="progressFileInput.click()">
+          <input #progressFileInput type="file" accept="image/*" hidden (change)="onFileSelect($event, 'progress')">
+          <div class="drop-icon icon-green"><i class="fa-solid fa-masks-theater"></i></div>
+          <div class="drop-title">Drop image for progression</div>
+          <div class="drop-sub">Transform faces across ages with GAN</div>
+          <div class="drop-formats">
+            <span class="chip chip-purple">JPG</span>
+            <span class="chip chip-green">PNG</span>
+            <span class="chip chip-orange">WebP</span>
           </div>
-        </div>
-        <div class="empty-state" *ngIf="recentActivities.length === 0">
-          <i class="fa-solid fa-inbox"></i>
-          <p>No analyses yet. Start by predicting an age!</p>
         </div>
       </div>
     </div>
 
-    <!-- Bottom 2-col -->
-    <div class="dash-bottom-grid">
-      <!-- Weekly Chart -->
-      <div class="card card-p">
-        <div class="section-title" style="font-size:0.95rem;margin-bottom:12px"><i class="fa-solid fa-chart-bar"></i> This Week</div>
-        <div class="chart-area" *ngIf="dailyCounts.length > 0">
-          <div class="chart-bar-wrap" *ngFor="let d of dailyCounts">
-            <div class="chart-bar" [style.height.%]="(d.count / getMaxDailyCount()) * 100"
-                 style="background:linear-gradient(180deg,var(--accent1),var(--accent2))"></div>
-            <div class="chart-label">{{ getDayLabel(d.date) }}</div>
+    <!-- Recent Activity -->
+    <div class="card card-p" style="margin-bottom:20px">
+      <div class="section-title" style="font-size:1rem;margin-bottom:14px"><i class="fa-solid fa-clipboard-list"></i> Recent Activity</div>
+      <div class="activity-list" *ngIf="recentActivities.length > 0">
+        <div class="activity-item" *ngFor="let a of recentActivities">
+          <div class="act-thumb"><i [class]="a.icon"></i></div>
+          <div class="act-body">
+            <div class="act-title">{{ a.title }}</div>
+            <div class="act-sub">{{ getTimeAgo(a.date) }} &bull; {{ a.model }}</div>
           </div>
-        </div>
-        <div class="empty-state" *ngIf="dailyCounts.length === 0">
-          <p>No weekly data available</p>
+          <div class="act-age">{{ a.age }}</div>
         </div>
       </div>
+      <div class="empty-state" *ngIf="recentActivities.length === 0">
+        <i class="fa-solid fa-inbox"></i>
+        <p>No analyses yet. Start by predicting an age!</p>
+      </div>
+    </div>
 
-      <!-- Quick Actions -->
-      <div class="card card-p">
-        <div class="section-title" style="font-size:0.95rem;margin-bottom:12px"><i class="fa-solid fa-rocket"></i> Quick Actions</div>
-        <div class="quick-actions">
-          <a class="qa-btn" routerLink="/predict">
-            <div class="qa-icon icon-purple"><i class="fa-solid fa-user"></i></div>
-            <span>Age Prediction</span>
-          </a>
-          <a class="qa-btn" routerLink="/progress">
-            <div class="qa-icon icon-green"><i class="fa-solid fa-masks-theater"></i></div>
-            <span>Age Progression</span>
-          </a>
-          <a class="qa-btn" routerLink="/history">
-            <div class="qa-icon icon-orange"><i class="fa-solid fa-folder-open"></i></div>
-            <span>History</span>
-          </a>
-          <a class="qa-btn" routerLink="/analytics">
-            <div class="qa-icon icon-deepurple"><i class="fa-solid fa-chart-line"></i></div>
-            <span>Analytics</span>
-          </a>
-        </div>
+    <!-- Quick Actions -->
+    <div class="card card-p">
+      <div class="section-title" style="font-size:0.95rem;margin-bottom:12px"><i class="fa-solid fa-rocket"></i> Quick Actions</div>
+      <div class="quick-actions">
+        <a class="qa-btn" routerLink="/predict">
+          <div class="qa-icon icon-purple"><i class="fa-solid fa-user"></i></div>
+          <span>Age Prediction</span>
+        </a>
+        <a class="qa-btn" routerLink="/progress">
+          <div class="qa-icon icon-green"><i class="fa-solid fa-masks-theater"></i></div>
+          <span>Age Progression</span>
+        </a>
+        <a class="qa-btn" routerLink="/history">
+          <div class="qa-icon icon-orange"><i class="fa-solid fa-folder-open"></i></div>
+          <span>History</span>
+        </a>
+        <a class="qa-btn" routerLink="/analytics">
+          <div class="qa-icon icon-deepurple"><i class="fa-solid fa-chart-line"></i></div>
+          <span>Analytics</span>
+        </a>
       </div>
     </div>
   </ng-container>

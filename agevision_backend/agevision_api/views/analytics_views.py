@@ -37,6 +37,15 @@ def analytics_view(request):
     # Daily counts for the past week
     daily_counts = MongoPredictionManager.daily_counts(user_id, days=7)
 
+    # Extended analytics
+    detector_dist = MongoPredictionManager.detector_distribution(user_id)
+    pred_time_stats = MongoPredictionManager.processing_time_stats(user_id)
+    confidence_dist = MongoPredictionManager.confidence_distribution(user_id)
+    model_dist = MongoProgressionManager.model_distribution(user_id)
+    model_perf = MongoProgressionManager.model_performance(user_id)
+    prog_time_stats = MongoProgressionManager.processing_time_stats(user_id)
+    age_transform = MongoProgressionManager.age_transformation_stats(user_id)
+
     return Response({
         'total_predictions': total_predictions,
         'total_progressions': total_progressions,
@@ -47,4 +56,11 @@ def analytics_view(request):
         'gender_distribution': gender_stats,
         'emotion_distribution': emotion_stats,
         'daily_counts': daily_counts,
+        'detector_distribution': detector_dist,
+        'prediction_time_stats': pred_time_stats,
+        'progression_time_stats': prog_time_stats,
+        'confidence_distribution': confidence_dist,
+        'model_distribution': model_dist,
+        'model_performance': model_perf,
+        'age_transformation_stats': age_transform,
     })

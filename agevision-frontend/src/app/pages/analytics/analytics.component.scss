@@ -1,54 +1,63 @@
+/* ── Layout grids ─────────────────────────── */
 .analytics-top {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: 14px;
+  margin-bottom: 16px;
 }
 
 .analytics-main {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 18px;
-  margin-bottom: 20px;
+  gap: 14px;
+  margin-bottom: 16px;
 }
 
-.analytics-bottom {
+.analytics-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 18px;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+
+  &:last-child { margin-bottom: 0; }
 }
 
-/* Loading */
+/* ── Card title (inside chart cards) ──────── */
+.card-title {
+  font-size: 0.92rem;
+  margin-bottom: 10px;
+}
+
+/* ── Loading ──────────────────────────────── */
 .loading-state {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 60px 20px;
+  padding: 48px 20px;
   color: var(--muted);
   font-size: 0.9rem;
 }
 
-/* Empty State */
+/* ── Empty state ──────────────────────────── */
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 30px 20px;
+  padding: 20px 16px;
   color: var(--muted);
   text-align: center;
 
   p { font-size: 0.8rem; margin: 0; }
 }
 
-/* Bar Chart */
+/* ── Weekly bar chart ─────────────────────── */
 .chart-area {
   display: flex;
   align-items: flex-end;
   gap: 6px;
   height: 180px;
-  padding-top: 10px;
 }
 
 .chart-bar-wrap {
@@ -63,7 +72,7 @@
 
 .chart-bar {
   width: 100%;
-  border-radius: 6px 6px 0 0;
+  border-radius: 5px 5px 0 0;
   min-height: 4px;
   transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -81,15 +90,15 @@
   font-weight: 600;
 }
 
-/* Donut */
+/* ── Donut chart ──────────────────────────── */
 .donut-wrap {
   display: flex;
   justify-content: center;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 
   svg {
-    width: 160px;
-    height: 160px;
+    width: 140px;
+    height: 140px;
     transform: rotate(-90deg);
   }
 }
@@ -97,14 +106,14 @@
 .age-dist-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .age-dist-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 0;
+  padding: 5px 0;
 }
 
 .adr-dot {
@@ -129,11 +138,11 @@
   text-align: right;
 }
 
-/* Distribution Bars */
+/* ── Distribution bars (shared) ───────────── */
 .dist-bar-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .dist-bar-item {
@@ -157,48 +166,153 @@
   }
 }
 
-/* Timeline */
-.timeline {
-  position: relative;
-  padding-left: 20px;
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: 8px;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background: var(--glass-border);
-  }
-}
-
-.tl-item {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 16px;
-  position: relative;
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: -16px;
-    top: 4px;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--accent1);
-    box-shadow: 0 0 0 3px var(--bg-base);
-  }
+/* ── Model usage sections ─────────────────── */
+.model-section {
+  margin-bottom: 14px;
 
   &:last-child { margin-bottom: 0; }
 }
 
-.tl-icon { font-size: 1rem; color: var(--muted); }
-.tl-title { font-size: 0.78rem; font-weight: 600; color: var(--text); }
-.tl-meta { font-size: 0.65rem; color: var(--muted); margin-top: 2px; }
+.model-section-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
 
+/* ── Processing performance stats ─────────── */
+.perf-section {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--glass-border);
+
+  &:last-child { border-bottom: none; }
+  &:first-child { padding-top: 0; }
+}
+
+.perf-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.perf-stats {
+  display: flex;
+  gap: 10px;
+}
+
+.perf-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 6px;
+  border-radius: 8px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+}
+
+.perf-stat-label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--muted);
+}
+
+.perf-stat-value {
+  font-size: 0.88rem;
+  font-weight: 700;
+  font-family: "Space Mono", monospace;
+  color: var(--text);
+}
+
+.perf-green { color: #2cb67d; }
+.perf-orange { color: #ff8906; }
+
+/* ── Model performance card ───────────────── */
+.model-perf-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.model-perf-card {
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+}
+
+.model-perf-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.model-perf-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text);
+  border-left: 3px solid;
+  padding-left: 8px;
+}
+
+.model-perf-count {
+  font-size: 0.68rem;
+  font-family: "Space Mono", monospace;
+  color: var(--muted);
+}
+
+.model-perf-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.model-perf-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 4px;
+  border-radius: 6px;
+  background: var(--card-bg, rgba(255, 255, 255, 0.02));
+}
+
+.model-perf-metric-label {
+  font-size: 0.56rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--muted);
+}
+
+.model-perf-metric-value {
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-family: "Space Mono", monospace;
+  color: var(--text);
+}
+
+/* ── Responsive ───────────────────────────── */
 @media (max-width: 1100px) {
-  .analytics-main, .analytics-bottom { grid-template-columns: 1fr; }
+  .analytics-main, .analytics-row { grid-template-columns: 1fr; }
   .analytics-top { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 480px) {
+  .analytics-top { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .analytics-main, .analytics-row { gap: 10px; margin-bottom: 12px; }
+  .chart-area { height: 140px; gap: 2px; }
+  .chart-label { font-size: 0.5rem; }
+  .donut-wrap svg { width: 110px; height: 110px; }
+  .age-dist-row { gap: 6px; padding: 4px 0; }
+  .adr-label { font-size: 0.68rem; width: 40px; }
+  .adr-val { font-size: 0.68rem; width: 36px; }
+  .model-perf-metrics { grid-template-columns: repeat(2, 1fr); }
 }

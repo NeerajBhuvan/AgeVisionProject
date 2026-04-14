@@ -33,6 +33,15 @@
   color: var(--accent4, #ef4444);
   font-size: 0.85rem;
   animation: shake 0.35s ease-in-out;
+
+  &.auth-warning {
+    background: rgba(255, 137, 6, 0.12);
+    border-color: rgba(255, 137, 6, 0.35);
+    color: var(--accent3, #ff8906);
+    animation: none;
+
+    strong { color: var(--accent3, #ff8906); font-weight: 700; margin-right: 4px; }
+  }
 }
 
 @keyframes shake {

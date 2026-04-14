@@ -40,6 +40,9 @@ def register_view(request):
                 'plan': 'free',
             }
 
+        if isinstance(mongo_user, dict):
+            mongo_user['is_admin'] = bool(user.is_superuser)
+
         refresh = RefreshToken.for_user(user)
         return Response({
             'message': 'Registration successful',
@@ -83,6 +86,16 @@ def login_view(request):
             status=status.HTTP_401_UNAUTHORIZED,
         )
 
+    # Block suspended accounts with a distinct, descriptive response
+    if not user.is_active:
+        return Response(
+            {
+                'error': 'Your account has been suspended. Please contact an administrator to restore access.',
+                'account_suspended': True,
+            },
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
     # Get user profile from MongoDB (fall back to Django data)
     try:
         mongo_user = MongoUserManager.get_by_django_id(user.id)
@@ -115,6 +128,9 @@ def login_view(request):
     except Exception:
         pass
 
+    if isinstance(mongo_user, dict):
+        mongo_user['is_admin'] = bool(user.is_superuser)
+
     refresh = RefreshToken.for_user(user)
     return Response({
         'message': 'Login successful',
@@ -135,8 +151,12 @@ def profile_view(request):
     except Exception:
         mongo_user = None
     if mongo_user:
+        mongo_user['is_admin'] = bool(request.user.is_superuser)
         return Response(mongo_user)
-    return Response(UserSerializer(request.user).data)
+    data = UserSerializer(request.user).data
+    if isinstance(data, dict):
+        data['is_admin'] = bool(request.user.is_superuser)
+    return Response(data)
 
 
 @api_view(['PUT', 'PATCH'])

@@ -5,18 +5,13 @@
   margin-bottom: 20px;
 }
 
-.dash-main-grid {
+.dash-drop-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 18px;
   margin-bottom: 20px;
 }
 
-.dash-bottom-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 18px;
-}
 
 /* Loading */
 .loading-state {
@@ -58,9 +53,14 @@
   transition: background 0.25s, border-color 0.25s;
   text-align: center;
 
-  &:hover {
+  &:hover, &.dragging {
     background: var(--drop-hover-bg);
     border-color: rgba(127, 90, 240, 0.45);
+  }
+
+  &.dragging {
+    border-color: rgba(127, 90, 240, 0.6);
+    box-shadow: 0 0 20px rgba(127, 90, 240, 0.15);
   }
 }
 
@@ -68,13 +68,21 @@
   width: 48px;
   height: 48px;
   border-radius: 14px;
-  background: rgba(127, 90, 240, 0.15);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.4rem;
   margin-bottom: 12px;
-  color: var(--accent1);
+
+  &.icon-purple {
+    background: rgba(127, 90, 240, 0.15);
+    color: var(--accent1);
+  }
+
+  &.icon-green {
+    background: rgba(44, 182, 125, 0.15);
+    color: var(--accent2);
+  }
 }
 
 .drop-title {
@@ -130,42 +138,10 @@
   color: var(--accent1);
 }
 
-/* Weekly Chart */
-.chart-area {
-  display: flex;
-  align-items: flex-end;
-  gap: 6px;
-  height: 140px;
-  padding-top: 10px;
-}
-
-.chart-bar-wrap {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  height: 100%;
-  justify-content: flex-end;
-}
-
-.chart-bar {
-  width: 100%;
-  border-radius: 6px 6px 0 0;
-  min-height: 4px;
-  transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.chart-label {
-  font-size: 0.6rem;
-  color: var(--muted);
-  font-weight: 600;
-}
-
 /* Quick Actions */
 .quick-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(4, 1fr);
   gap: 10px;
 }
 
@@ -209,6 +185,7 @@
 }
 
 @media (max-width: 1100px) {
-  .dash-main-grid, .dash-bottom-grid { grid-template-columns: 1fr; }
+  .dash-drop-grid { grid-template-columns: 1fr; }
   .dash-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .quick-actions { grid-template-columns: repeat(2, 1fr); }
 }

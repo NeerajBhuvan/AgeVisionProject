@@ -1,0 +1,222 @@
+<div class="page">
+  <div class="section-title">
+    <i class="fa-solid fa-layer-group"></i>
+    Batch <span class="gradient-text">Prediction</span>
+  </div>
+  <div class="section-sub">
+    Upload up to {{ MAX_IMAGES }} images at once and run age prediction across all detected faces in a single pass.
+  </div>
+
+  <!-- ─── Upload Card ─── -->
+  <section class="card card-p batch-upload-card">
+    <div
+      class="batch-drop"
+      [class.dragging]="isDragging"
+      [class.disabled]="isProcessing"
+      (dragover)="onDragOver($event)"
+      (dragleave)="onDragLeave()"
+      (drop)="onDrop($event)"
+      (click)="!isProcessing && fileInput.click()"
+    >
+      <input
+        #fileInput
+        type="file"
+        accept="image/*"
+        multiple
+        hidden
+        (change)="onFileSelect($event)"
+      />
+      <div class="drop-icon"><i class="fa-solid fa-images"></i></div>
+      <div class="drop-title">Drop images here or click to browse</div>
+      <div class="drop-sub">
+        Up to {{ MAX_IMAGES }} files &bull; max {{ MAX_FILE_SIZE_LABEL }} per image
+      </div>
+      <div class="drop-formats">
+        <span class="chip chip-purple">JPG</span>
+        <span class="chip chip-green">PNG</span>
+        <span class="chip chip-orange">WebP</span>
+      </div>
+    </div>
+
+    @if (errorMessage) {
+      <div class="batch-error">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        {{ errorMessage }}
+      </div>
+    }
+
+    @if (queue.length > 0) {
+      <div class="queue-header">
+        <div class="queue-count">
+          <i class="fa-solid fa-layer-group"></i>
+          {{ queue.length }} / {{ MAX_IMAGES }} queued
+        </div>
+        <div class="queue-actions">
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm btn-danger"
+            (click)="clearQueue()"
+            [disabled]="isProcessing"
+          >
+            <i class="fa-solid fa-trash"></i>
+            Clear all
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary btn-sm"
+            (click)="processBatch()"
+            [disabled]="isProcessing || queue.length === 0"
+          >
+            @if (isProcessing) {
+              <i class="fa-solid fa-spinner fa-spin"></i>
+              Processing…
+            } @else {
+              <i class="fa-solid fa-bolt"></i>
+              Run batch ({{ queue.length }})
+            }
+          </button>
+        </div>
+      </div>
+
+      <div class="queue-grid">
+        @for (item of queue; track item.preview; let i = $index) {
+          <div class="queue-item" [class.invalid]="item.oversize">
+            <img [src]="item.preview" [alt]="item.file.name" />
+            <button
+              type="button"
+              class="queue-remove"
+              (click)="removeFromQueue(i)"
+              [disabled]="isProcessing"
+              aria-label="Remove image"
+            >
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="queue-meta">
+              <span class="queue-name" [title]="item.file.name">{{ item.file.name }}</span>
+              <span class="queue-size">{{ formatBytes(item.size) }}</span>
+            </div>
+            @if (item.oversize) {
+              <div class="queue-warning">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                Too large
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+  </section>
+
+  <!-- ─── Results ─── -->
+  @if (showResults) {
+    <section class="card card-p batch-results-card">
+      <div class="results-header">
+        <div>
+          <h2 class="results-title">
+            <i class="fa-solid fa-chart-simple"></i>
+            Batch Results
+          </h2>
+          <div class="results-sub">
+            {{ totalImages }} image(s) processed in {{ formatTime(processingTimeMs) }}
+          </div>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" (click)="resetAll()">
+          <i class="fa-solid fa-rotate-left"></i>
+          New batch
+        </button>
+      </div>
+
+      <!-- KPIs -->
+      <div class="results-kpis">
+        <div class="kpi">
+          <div class="kpi-icon kpi-icon-purple">
+            <i class="fa-solid fa-images"></i>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-label">Images</div>
+            <div class="kpi-value">{{ totalImages }}</div>
+          </div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-icon kpi-icon-green">
+            <i class="fa-solid fa-circle-check"></i>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-label">Succeeded</div>
+            <div class="kpi-value">{{ successCount() }}</div>
+          </div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-icon kpi-icon-red">
+            <i class="fa-solid fa-circle-xmark"></i>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-label">Failed</div>
+            <div class="kpi-value">{{ errorCount() }}</div>
+          </div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-icon kpi-icon-orange">
+            <i class="fa-solid fa-user-group"></i>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-label">Faces detected</div>
+            <div class="kpi-value">{{ totalFaces }}</div>
+          </div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-icon kpi-icon-purple">
+            <i class="fa-solid fa-cake-candles"></i>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-label">Avg age</div>
+            <div class="kpi-value">{{ averageAge() }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Per-image result cards -->
+      <div class="results-grid">
+        @for (item of results; track item.file_index) {
+          <div class="result-card" [class.result-error]="isError(item)">
+            @if (isError(item)) {
+              <div class="result-error-body">
+                <div class="result-error-icon">
+                  <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div class="result-error-text">
+                  <div class="result-filename" [title]="item.filename">{{ item.filename }}</div>
+                  <div class="result-error-msg">{{ item.error }}</div>
+                </div>
+              </div>
+            } @else {
+              <img class="result-thumb" [src]="asSuccess(item).image_url" [alt]="item.filename" />
+              <div class="result-body">
+                <div class="result-filename" [title]="item.filename">{{ item.filename }}</div>
+                <div class="result-face-count">
+                  <i class="fa-solid fa-user"></i>
+                  {{ asSuccess(item).face_count }} face(s)
+                </div>
+
+                <div class="result-faces">
+                  @for (face of asSuccess(item).faces; track face.face_id) {
+                    <div class="face-row">
+                      <span class="face-num">#{{ face.face_id + 1 }}</span>
+                      <span class="face-age">{{ face.predicted_age }}y</span>
+                      <span class="face-meta">
+                        {{ face.gender }} &middot; {{ face.emotion }}
+                      </span>
+                      <span class="face-conf">
+                        {{ (face.confidence * 100).toFixed(0) }}%
+                      </span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </section>
+  }
+</div>

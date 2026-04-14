@@ -40,7 +40,7 @@ Thumbs.db
 agevision_backend/media/
 db.sqlite3
 
-# Results/output (optional - remove if you want to track these)
+# Results/output
 results/
 
 # Logs
@@ -49,3 +49,33 @@ results/
 # Temp
 *.tmp
 .claude/
+
+# Secrets/tokens
+*_token.txt
+*.secret
+credentials*.json
+
+# Large binary files
+*.zip
+*.tar.gz
+*.rar
+
+# Images and generated reports (not app assets)
+images/
+age_vision_logo.png
+*.pdf
+report.html
+agevision_complete.html
+
+# Datasets
+agevision_backend/datasets/
+datasets/
+
+# Pip install artifacts
+=*
+
+# Scripts not part of core app
+download_samples.py
+
+# Jupyter notebooks (training)
+sam-finetune.ipynb

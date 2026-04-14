@@ -129,6 +129,8 @@
             <span class="gan-check" *ngIf="selectedGan === g.id"><i class="fa-solid fa-check"></i></span>
           </div>
         </div>
+
+
       </div>
 
       <!-- Generate Button -->
@@ -162,9 +164,8 @@
             <div class="comp-label-tag after-tag">Age {{ effectiveTargetAge }}</div>
           </div>
           <!-- Before (original) – clipped by slider -->
-          <div class="comp-before" [style.width.%]="sliderPosition">
-            <img [src]="imagePreview" alt="Original"
-                 [style.width.%]="sliderPosition > 0 ? (100 / sliderPosition) * 100 : 100" />
+          <div class="comp-before" [style.clip-path]="'inset(0 ' + (100 - sliderPosition) + '% 0 0)'">
+            <img [src]="imagePreview" alt="Original" />
             <div class="comp-label-tag before-tag">Original</div>
           </div>
           <!-- Slider handle -->
@@ -176,8 +177,11 @@
         </div>
 
         <div class="comparison-actions">
-          <button class="btn btn-ghost btn-sm" (click)="downloadResult()">
-            <i class="fa-solid fa-download"></i> Download Result
+          <button class="btn btn-green" (click)="downloadResult()">
+            <i class="fa-solid fa-file-pdf"></i> PDF Report
+          </button>
+          <button class="btn btn-primary" (click)="downloadImage()">
+            <i class="fa-solid fa-download"></i> Download Image
           </button>
         </div>
       </div>
@@ -202,15 +206,33 @@
         </div>
       </div>
 
-      <!-- Pipeline Steps -->
+      <!-- Pipeline Steps (live SSE streaming) -->
       <div class="card card-p" *ngIf="isGenerating || showResult">
-        <div class="section-title" style="font-size:0.95rem;margin-bottom:14px"><i class="fa-solid fa-gears"></i> Pipeline</div>
-        <div class="pipeline">
+        <div class="pipeline-header">
+          <div class="section-title" style="font-size:0.95rem;margin-bottom:0"><i class="fa-solid fa-gears"></i> Pipeline</div>
+          <div class="elapsed-timer" *ngIf="isGenerating">
+            <i class="fa-solid fa-clock"></i> {{ elapsedSeconds }}s
+          </div>
+          <div class="elapsed-timer elapsed-done" *ngIf="!isGenerating && showResult">
+            <i class="fa-solid fa-check-circle"></i> {{ processingTime < 1000 ? (processingTime | number:'1.0-0') + 'ms' : (processingTime / 1000 | number:'1.1-1') + 's' }}
+          </div>
+        </div>
+
+        <!-- Live progress bar -->
+        <div class="pipeline-progress-bar" *ngIf="isGenerating">
+          <div class="pipeline-progress-fill" [class.indeterminate]="pipelineSteps.length === 0"></div>
+        </div>
+
+        <div class="pipeline" style="margin-top:14px">
           <div class="prog-step" *ngFor="let step of pipelineSteps; let i = index"
                [class.step-done]="step.status === 'done'"
                [class.step-running]="step.status === 'running'"
-               [class.step-error]="step.status === 'error'">
-            <div class="step-num">{{ i + 1 }}</div>
+               [class.step-error]="step.status === 'error'"
+               [@stepEnter]>
+            <div class="step-num" [class.num-done]="step.status === 'done'" [class.num-running]="step.status === 'running'">
+              <i *ngIf="step.status === 'done'" class="fa-solid fa-check" style="font-size:0.6rem"></i>
+              <span *ngIf="step.status !== 'done'">{{ i + 1 }}</span>
+            </div>
             <div class="step-icon"><i [class]="step.icon"></i></div>
             <div class="step-label">{{ step.label }}</div>
 
@@ -225,6 +247,16 @@
             </span>
             <span *ngIf="step.status === 'error'" class="chip chip-red" style="margin-left:auto">
               Error
+            </span>
+          </div>
+
+          <!-- Placeholder when no steps yet -->
+          <div class="prog-step step-running" *ngIf="isGenerating && pipelineSteps.length === 0">
+            <div class="step-num num-running">1</div>
+            <div class="step-icon"><i class="fa-solid fa-spinner fa-spin"></i></div>
+            <div class="step-label">Initializing pipeline...</div>
+            <span class="chip chip-blue" style="margin-left:auto">
+              <span class="spinner-sm"></span> Starting
             </span>
           </div>
         </div>

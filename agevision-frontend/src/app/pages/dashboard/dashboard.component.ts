@@ -1,9 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { TimezoneService } from '../../services/timezone.service';
+import { FileTransferService } from '../../services/file-transfer.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -14,22 +15,24 @@ import { TimezoneService } from '../../services/timezone.service';
 export class DashboardComponent implements OnInit {
   loading = true;
   userName = '';
+  isDraggingPredict = false;
+  isDraggingProgress = false;
 
   totalPredictions = 0;
   totalProgressions = 0;
   totalAnalyses = 0;
   weekPredictions = 0;
   weekProgressions = 0;
-  avgConfidence = 0;
   avgProcessingTime = 0;
 
   recentActivities: any[] = [];
-  dailyCounts: { date: string; count: number }[] = [];
 
   constructor(
     private api: ApiService,
     private auth: AuthService,
-    private tz: TimezoneService
+    private tz: TimezoneService,
+    private fileTransfer: FileTransferService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -49,8 +52,6 @@ export class DashboardComponent implements OnInit {
         this.totalAnalyses = this.totalPredictions + this.totalProgressions;
         this.weekPredictions = data.week_predictions || 0;
         this.weekProgressions = data.week_progressions || 0;
-        this.avgConfidence = data.average_confidence || 0;
-        this.dailyCounts = (data.daily_counts || []).reverse();
         checkDone();
       },
       error: () => checkDone()
@@ -106,12 +107,36 @@ export class DashboardComponent implements OnInit {
     return `${(ms / 1000).toFixed(1)}s`;
   }
 
-  getMaxDailyCount(): number {
-    if (!this.dailyCounts.length) return 1;
-    return Math.max(...this.dailyCounts.map(d => d.count), 1);
+  // ─── Drag & Drop ───
+
+  onDragOver(e: DragEvent, target: 'predict' | 'progress'): void {
+    e.preventDefault();
+    if (target === 'predict') this.isDraggingPredict = true;
+    else this.isDraggingProgress = true;
   }
 
-  getDayLabel(dateStr: string): string {
-    return this.tz.getDayLabel(dateStr);
+  onDragLeave(target: 'predict' | 'progress'): void {
+    if (target === 'predict') this.isDraggingPredict = false;
+    else this.isDraggingProgress = false;
+  }
+
+  onDrop(e: DragEvent, target: 'predict' | 'progress'): void {
+    e.preventDefault();
+    this.isDraggingPredict = false;
+    this.isDraggingProgress = false;
+    const file = e.dataTransfer?.files[0];
+    if (file) this.transferAndNavigate(file, target);
+  }
+
+  onFileSelect(e: Event, target: 'predict' | 'progress'): void {
+    const input = e.target as HTMLInputElement;
+    if (input.files?.[0]) this.transferAndNavigate(input.files[0], target);
+    input.value = '';
+  }
+
+  private transferAndNavigate(file: File, target: 'predict' | 'progress'): void {
+    if (!file.type.startsWith('image/')) return;
+    this.fileTransfer.setPendingFile(file);
+    this.router.navigate([`/${target === 'predict' ? 'predict' : 'progress'}`]);
   }
 }

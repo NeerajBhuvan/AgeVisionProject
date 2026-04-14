@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
+import { adminGuard } from './guards/admin.guard';
 
 export const routes: Routes = [
   {
@@ -45,6 +46,14 @@ export const routes: Routes = [
     data: { animation: 'Predict' }
   },
   {
+    path: 'batch-predict',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/batch-predict/batch-predict.component')
+        .then(m => m.BatchPredictComponent),
+    data: { animation: 'BatchPredict' }
+  },
+  {
     path: 'progress',
     canActivate: [authGuard],
     loadComponent: () =>
@@ -75,6 +84,14 @@ export const routes: Routes = [
       import('./pages/settings/settings.component')
         .then(m => m.SettingsComponent),
     data: { animation: 'Settings' }
+  },
+  {
+    path: 'admin',
+    canActivate: [authGuard, adminGuard],
+    loadComponent: () =>
+      import('./pages/admin/admin.component')
+        .then(m => m.AdminComponent),
+    data: { animation: 'Admin' }
   },
   {
     path: '**',

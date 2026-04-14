@@ -137,7 +137,7 @@ h1, h2, h3, h4, h5, h6, p, span, div, label, a, li, td, th, button, input, selec
   transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
 }
 .card:hover { border-color: var(--card-hover-border); }
-.card-p { padding: 22px; }
+.card-p { padding: 16px; }
 
 /* ═══════════════════════════════════════════
    TYPOGRAPHY
@@ -173,6 +173,7 @@ h1, h2, h3, h4, h5, h6, p, span, div, label, a, li, td, th, button, input, selec
   background: linear-gradient(135deg, var(--accent2), #1a9c5b);
   color: #fff; box-shadow: 0 4px 18px rgba(44, 182, 125, 0.25);
 }
+.btn-green:hover { color: #fff; box-shadow: 0 6px 28px rgba(44, 182, 125, 0.45); }
 .btn-orange {
   background: linear-gradient(135deg, var(--accent3), #e67e00);
   color: #fff; box-shadow: 0 4px 18px rgba(255, 137, 6, 0.25);
@@ -281,6 +282,7 @@ input::-webkit-credentials-auto-fill-button {
 .stat-trend {
   margin-top: 6px; font-size: 0.68rem; font-weight: 600;
   display: inline-flex; align-items: center; gap: 3px;
+  color: var(--muted);
 }
 .trend-up { color: var(--accent2); }
 .trend-down { color: var(--accent4); }
@@ -327,7 +329,7 @@ input::-webkit-credentials-auto-fill-button {
 
 /* #main layout */
 #main { flex: 1; min-width: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-#main-content { flex: 1; overflow-y: auto; contain: layout style; position: relative; }
+#main-content { flex: 1; overflow-y: auto; contain: style; position: relative; }
 
 /* ═══════════════════════════════════════════
    AUTH SCREENS
@@ -445,8 +447,14 @@ input::-webkit-credentials-auto-fill-button {
    SETTINGS PAGE
 ═══════════════════════════════════════════ */
 .settings-layout { display: grid; grid-template-columns: 220px 1fr; gap: 24px; align-items: start; }
-@media (max-width: 768px) { .settings-layout { grid-template-columns: 1fr; } }
 .settings-nav { padding: 12px 0; position: sticky; top: 90px; }
+@media (max-width: 768px) {
+  .settings-layout { grid-template-columns: 1fr; }
+  /* Drop the sticky nav on mobile — the translucent glass card would
+     otherwise float over the form fields as they scrolled past. Letting
+     it scroll naturally avoids the overlap and frees vertical space. */
+  .settings-nav { position: static; top: auto; }
+}
 .settings-nav-item {
   display: flex; align-items: center; gap: 10px; padding: 10px 18px;
   font-size: 0.82rem; font-weight: 500; color: var(--muted);
@@ -548,17 +556,16 @@ input::-webkit-credentials-auto-fill-button {
   .toggle-row { padding: 8px 0; }
   .toggle-label { font-size: 0.78rem; }
   .analytics-top { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
-  .analytics-top .card-p { padding: 14px; }
+  .analytics-top .card-p { padding: 12px; }
   .analytics-top .stat-card { gap: 10px; }
   .analytics-top .stat-icon { width: 38px; height: 38px; min-width: 38px; border-radius: 10px; font-size: 1rem; }
   .analytics-top .stat-body h3 { font-size: 1.25rem; }
   .analytics-top .stat-body p { font-size: 0.65rem; }
   .analytics-top .stat-trend { font-size: 0.6rem; }
-  .analytics-main { gap: 14px; margin-bottom: 16px; }
-  .analytics-main .card-p { padding: 16px; }
+  .analytics-main { gap: 12px; margin-bottom: 14px; }
+  .analytics-main .card-p { padding: 14px; }
   .chart-area { height: 160px; }
-  .analytics-bottom { gap: 14px; }
-  .analytics-bottom .card-p { padding: 16px; }
+  .analytics-row .card-p { padding: 14px; }
   .perf-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -16px; padding: 0 16px; }
   .perf-table { min-width: 320px; }
   .perf-table th { font-size: 0.6rem; padding: 6px 8px; }
@@ -587,6 +594,11 @@ input::-webkit-credentials-auto-fill-button {
   .hl-btn { width: 28px; height: 28px; font-size: 0.7rem; }
   .target-grid { grid-template-columns: repeat(4, 1fr); }
   #bottom-nav { display: flex; }
+  /* 6 items now (Home / Predict / Batch / Progress / History / Analytics) —
+     tighten per-item padding so the row stays comfortable on ≤ 400 px screens. */
+  #bottom-nav .bnav-item { padding: 6px 6px; }
+  #bottom-nav .bnav-icon { font-size: 1.1rem; }
+  #bottom-nav .bnav-label { font-size: 0.62rem; }
   .compare-grid { grid-template-columns: 1fr auto 1fr; }
   .topbar-title { font-size: 0.88rem; }
   /* .open expand rules handled in sidebar component SCSS */
@@ -638,18 +650,17 @@ input::-webkit-credentials-auto-fill-button {
   .hl-age { font-size: 0.85rem; }
   .hl-btn { width: 26px; height: 26px; font-size: 0.65rem; }
   .analytics-top { grid-template-columns: 1fr; gap: 8px; margin-bottom: 14px; }
-  .analytics-top .card-p { padding: 12px 14px; }
-  .analytics-top .stat-card { gap: 12px; }
+  .analytics-top .card-p { padding: 10px 12px; }
+  .analytics-top .stat-card { gap: 10px; }
   .analytics-top .stat-icon { width: 36px; height: 36px; min-width: 36px; font-size: 0.95rem; }
   .analytics-top .stat-body h3 { font-size: 1.15rem; }
-  .analytics-main { gap: 12px; margin-bottom: 14px; }
-  .analytics-main .card-p { padding: 14px; }
+  .analytics-main { gap: 10px; margin-bottom: 12px; }
+  .analytics-main .card-p { padding: 12px; }
+  .analytics-row .card-p { padding: 12px; }
   .chart-area { height: 140px; gap: 2px; }
   .chart-label { font-size: 0.5rem; }
-  .analytics-bottom { gap: 12px; }
-  .analytics-bottom .card-p { padding: 14px; }
-  .donut-wrap svg { width: 120px; height: 120px; }
-  .age-dist-row { gap: 6px; padding: 6px 0; }
+  .donut-wrap svg { width: 110px; height: 110px; }
+  .age-dist-row { gap: 6px; padding: 4px 0; }
   .adr-label { font-size: 0.68rem; width: 40px; }
   .adr-val { font-size: 0.65rem; width: 34px; }
   .perf-table th { font-size: 0.55rem; padding: 5px 6px; letter-spacing: 0.06em; }
@@ -761,6 +772,7 @@ input::-webkit-credentials-auto-fill-button {
 [data-theme="light"] .btn-primary { box-shadow: 0 2px 12px rgba(127, 90, 240, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2); }
 [data-theme="light"] .btn-primary:hover { box-shadow: 0 4px 20px rgba(127, 90, 240, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.25); }
 [data-theme="light"] .btn-green { box-shadow: 0 2px 12px rgba(44, 182, 125, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2); }
+[data-theme="light"] .btn-green:hover { color: #fff; box-shadow: 0 4px 20px rgba(44, 182, 125, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.25); }
 [data-theme="light"] .btn-orange { box-shadow: 0 2px 12px rgba(255, 137, 6, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2); }
 [data-theme="light"] .tgl { background: rgba(0, 0, 0, 0.06); border: 1px solid rgba(255, 255, 255, 0.5); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06); }
 [data-theme="light"] .tgl.on { background: rgba(127, 90, 240, 0.4); border-color: rgba(127, 90, 240, 0.3); }
@@ -827,7 +839,6 @@ input::-webkit-credentials-auto-fill-button {
 [data-theme="light"] ::-webkit-scrollbar-track { background: transparent; }
 [data-theme="light"] ::-webkit-scrollbar-thumb { background: rgba(127, 90, 240, 0.2); }
 [data-theme="light"] .logo-icon { box-shadow: none; background: transparent; }
-[data-theme="light"] #hamburger { background: rgba(255, 255, 255, 0.45); border-color: rgba(255, 255, 255, 0.65); }
 [data-theme="light"] .gradient-text { background: linear-gradient(90deg, #6b3fcf, #1a8a55); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 [data-theme="light"] .donut-svg circle:first-child { stroke: rgba(0, 0, 0, 0.05); }
 [data-theme="light"] .prog-step { border-left-color: rgba(0, 0, 0, 0.06); }

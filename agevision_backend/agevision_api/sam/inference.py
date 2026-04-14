@@ -39,25 +39,35 @@ class SAMInference:
       - transform_face(face_crop_bgr, target_age) -> np.ndarray (BGR)
     """
 
-    _instance = None
+    # Separate singleton instances per variant
+    _instances = {}  # {'indian': SAMInference, 'ffhq': SAMInference}
 
-    def __init__(self, checkpoint_path: str = None, device: str = None):
+    def __init__(self, checkpoint_path: str = None, device: str = None,
+                 variant: str = 'ffhq'):
         if device is None:
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
         else:
             self.device = device
 
-        # Default: FFHQ pretrained model, fallback: Indian fine-tuned
+        self.variant = variant
+
         if checkpoint_path is None:
             from .configs.paths_config import model_paths
             ffhq_path = model_paths.get('sam_ffhq_aging', '')
             indian_path = model_paths.get('sam_indian', '')
-            if os.path.isfile(ffhq_path):
-                checkpoint_path = ffhq_path
-            elif os.path.isfile(indian_path):
-                checkpoint_path = indian_path
+
+            if variant == 'indian':
+                # Indian-first priority
+                if os.path.isfile(indian_path):
+                    checkpoint_path = indian_path
+                elif os.path.isfile(ffhq_path):
+                    checkpoint_path = ffhq_path
             else:
-                checkpoint_path = None
+                # FFHQ-first priority
+                if os.path.isfile(ffhq_path):
+                    checkpoint_path = ffhq_path
+                elif os.path.isfile(indian_path):
+                    checkpoint_path = indian_path
 
         self.checkpoint_path = checkpoint_path
         self._loaded = False
@@ -66,6 +76,13 @@ class SAMInference:
 
         # dlib predictor for FFHQ alignment (lazy-loaded)
         self._dlib_predictor = None
+
+    @classmethod
+    def get_instance(cls, variant: str = 'ffhq') -> 'SAMInference':
+        """Get or create a singleton SAMInference for the given variant."""
+        if variant not in cls._instances:
+            cls._instances[variant] = cls(variant=variant)
+        return cls._instances[variant]
 
     def load(self) -> bool:
         """Load SAM model weights. Returns True on success."""

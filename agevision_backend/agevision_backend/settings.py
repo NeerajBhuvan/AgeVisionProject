@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'agevision_api',
     'age_progression',
@@ -159,8 +160,25 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(hours=24),
+    # Short-lived access token: if leaked, exposure window is ≤15 minutes.
+    # The Angular auth interceptor silently calls /token/refresh/ on any 401
+    # and replays the original request, so this is invisible to the user.
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+
+    # Refresh token gives the session a 7-day idle window. After 7 days
+    # of no API activity, the user must log in again.
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+
+    # Issue a brand-new refresh token on every refresh call (sliding session)
+    # and immediately blacklist the old one. If a refresh token leaks, the
+    # next legitimate refresh kills it; an attacker holding a stale token
+    # can no longer use it. Requires the token_blacklist app + migrations.
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+
+    # Keep User.last_login current so the "active in last 5 min" badge in
+    # the topbar reflects real activity, not just login time.
+    'UPDATE_LAST_LOGIN': True,
 }
 
 
@@ -172,3 +190,14 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # File Upload Settings
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
+
+
+# FADING Cloud GPU (Modal)
+# Set this to the Modal web endpoint URL after running:
+#   cd agevision_backend/agevision_api/diffusion_aging && modal deploy modal_app.py
+# The deploy command will print the endpoint URL.
+# Can also be set via FADING_MODAL_ENDPOINT environment variable.
+FADING_MODAL_ENDPOINT = os.environ.get(
+    'FADING_MODAL_ENDPOINT',
+    'https://neerajbhuvanmnb--agevision-fading-age-face-endpoint.modal.run'
+)
