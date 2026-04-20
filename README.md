@@ -39,7 +39,7 @@ A full-stack AI system for age prediction, age progression, and face recognition
 ┌───────▼───────┐         ┌─────────▼──────┐
 │   MongoDB     │         │  ML Checkpoints │
 │  (user data,  │         │  checkpoints/   │
-│  predictions) │         │  6.5 GB models  │
+│  predictions) │         │  ~6.5 GB        │
 └───────────────┘         └────────────────┘
 ```
 
@@ -54,7 +54,7 @@ A full-stack AI system for age prediction, age progression, and face recognition
 | Database | MongoDB (primary), SQLite (fallback) |
 | Age Prediction | MiVOLO, InsightFace, YOLO |
 | Age Progression | HRFAE GAN, SAM (Style-based Aging Model) |
-| Diffusion Aging | Stable Diffusion (prompt-to-prompt) |
+| Diffusion Aging | Stable Diffusion (FADING, prompt-to-prompt) |
 | Face Detection | Caffe SSD, dlib, OpenCV Haar cascade |
 | ML Frameworks | PyTorch, TensorFlow, ONNX Runtime |
 
@@ -65,6 +65,7 @@ A full-stack AI system for age prediction, age progression, and face recognition
 ```
 AgeVisionProject/
 ├── run.py                          # Standalone CLI pipeline entry point
+├── download_checkpoints.py         # Downloads all models from Google Drive
 ├── requirements.txt                # Python dependencies (108 packages)
 ├── requirements_pipeline.txt       # Pipeline-only deps
 │
@@ -81,34 +82,22 @@ AgeVisionProject/
 │   │   ├── settings.py
 │   │   └── urls.py
 │   ├── agevision_api/              # Main API app
-│   │   ├── views/                  # 7 view modules (auth, predict, progress, history,
-│   │   │                           #   analytics, settings, admin)
+│   │   ├── views/                  # 7 view modules (auth, predict, progress,
+│   │   │                           #   history, analytics, settings, admin)
 │   │   ├── age_predictor.py        # Prediction orchestration
 │   │   ├── gan_progression.py      # GAN-based age progression
 │   │   ├── mivolo_predictor.py     # MiVOLO age estimation
 │   │   ├── insightface_predictor.py
 │   │   ├── emotion_detector.py
 │   │   ├── mongodb.py              # All MongoDB data access
-│   │   ├── crypto.py               # Fernet encryption for sensitive data
-│   │   ├── models.py               # Django ORM models
-│   │   ├── serializers.py
-│   │   ├── permissions.py
-│   │   ├── urls.py                 # 27 API endpoints
+│   │   ├── crypto.py               # Fernet encryption
 │   │   ├── hrfae/                  # HRFAE GAN model
 │   │   ├── mivolo/                 # MiVOLO model assets
 │   │   ├── sam/                    # SAM model (50+ files)
-│   │   ├── diffusion_aging/        # Stable diffusion aging
+│   │   ├── diffusion_aging/        # FADING Stable Diffusion aging
 │   │   └── fast_aging/             # Fast GAN aging model
 │   ├── age_progression/            # Alternative aging Django app
-│   │   └── utils/                  # face_detector, age_estimator, age_progressor
 │   └── checkpoints/                # ML model weights (gitignored, ~6.5 GB)
-│       ├── sam_indian_best.pt      # SAM fine-tuned on Indian faces
-│       ├── sam_ffhq_aging.pt       # SAM FFHQ general model
-│       ├── hrfae_best.pth          # HRFAE GAN weights
-│       ├── fast_aging_gan.pth      # Fast GAN weights
-│       ├── mivolo_indian/          # MiVOLO age predictor
-│       ├── fading/                 # Diffusion model weights
-│       └── shape_predictor_68_face_landmarks.dat
 │
 ├── agevision-frontend/             # Angular 19 web app
 │   └── src/app/
@@ -118,9 +107,9 @@ AgeVisionProject/
 │       └── models/                 # TypeScript interfaces
 │
 └── scripts/                        # Report generation utilities
-    ├── build_final_report.py       # Generates Word (.docx) report
-    ├── build_final_report_pdf.py   # Generates PDF report
-    └── report_content.py           # Report content and figure definitions
+    ├── build_final_report.py
+    ├── build_final_report_pdf.py
+    └── report_content.py
 ```
 
 ---
@@ -129,47 +118,44 @@ AgeVisionProject/
 
 - Python 3.9+ (3.13 recommended)
 - Node.js 18+ and npm
-- MongoDB 6.0+ (running locally or Atlas URI)
-- CUDA-capable GPU (optional but recommended for inference speed)
+- MongoDB 6.0+
+- CUDA GPU recommended (GTX 1080 Ti / RTX 3080 or better for diffusion model)
 
 ---
 
 ## Setup
 
-### 1. Clone & install Python dependencies
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/NeerajBhuvan/AgeVisionProject.git
 cd AgeVisionProject
+```
+
+### 2. Install Python dependencies
+
+```bash
 pip install -r requirements.txt
 ```
 
-### 2. Download model checkpoints
+### 3. Download model checkpoints
 
-The `agevision_backend/checkpoints/` directory (~6.5 GB) is gitignored and must be set up manually. Place the following files:
-
-```
-agevision_backend/checkpoints/
-├── sam_indian_best.pt              # SAM fine-tuned (Indian face dataset)
-├── sam_ffhq_aging.pt               # SAM FFHQ pretrained
-├── hrfae_best.pth                  # HRFAE GAN
-├── fast_aging_gan.pth              # Fast GAN
-├── shape_predictor_68_face_landmarks.dat   # dlib 68-point landmarks
-├── mivolo_indian/                  # MiVOLO checkpoint folder
-└── fading/                         # Diffusion model folder
-    └── finetune_double_prompt_150_random/
+```bash
+python download_checkpoints.py
 ```
 
-### 3. Configure MongoDB
+This downloads all models from Google Drive into `agevision_backend/checkpoints/`.  
+See the [Model Checkpoints](#model-checkpoints) section below for details on each model.
 
-Start MongoDB locally or set your Atlas URI. By default the app connects to:
+### 4. Configure MongoDB
+
+Start MongoDB locally or use Atlas. Default connection:
 ```
 mongodb://localhost:27017/agevision
 ```
+To use a custom URI, edit `MONGO_URI` in `agevision_backend/agevision_backend/settings.py`.
 
-To use a custom URI, set it in `agevision_backend/agevision_backend/settings.py` under `MONGO_URI`.
-
-### 4. Run Django migrations and start the backend
+### 5. Start the backend
 
 ```bash
 cd agevision_backend
@@ -177,9 +163,9 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-Backend will be available at `http://localhost:8000`.
+Backend runs at `http://localhost:8000`.
 
-### 5. Start the Angular frontend
+### 6. Start the frontend
 
 ```bash
 cd agevision-frontend
@@ -187,7 +173,79 @@ npm install
 ng serve
 ```
 
-Frontend will be available at `http://localhost:4200`.
+Frontend runs at `http://localhost:4200`.
+
+---
+
+## Model Checkpoints
+
+All model weights are stored in `agevision_backend/checkpoints/` (gitignored).  
+They are hosted on Google Drive and downloaded automatically by `download_checkpoints.py`.
+
+### Checkpoint Files
+
+| Model | File | Size | Required | Google Drive |
+|---|---|---|---|---|
+| SAM (Indian) | `sam_indian_best.pt` | 2.2 GB | Yes | [Download](https://drive.google.com/file/d/YOUR_GDRIVE_FILE_ID/view) |
+| SAM (FFHQ) | `sam_ffhq_aging.pt` | 2.2 GB | Yes | [Download](https://drive.google.com/file/d/YOUR_GDRIVE_FILE_ID/view) |
+| HRFAE GAN | `hrfae_best.pth` | 50 MB | Yes | [Download](https://drive.google.com/file/d/YOUR_GDRIVE_FILE_ID/view) |
+| Fast-AgingGAN | `fast_aging_gan.pth` | 11 MB | No | [Download](https://drive.google.com/file/d/YOUR_GDRIVE_FILE_ID/view) |
+| MiVOLO | `mivolo_indian/mivolo_indian_best.pt` | 110 MB | Yes | [Download](https://drive.google.com/file/d/YOUR_GDRIVE_FILE_ID/view) |
+| dlib Landmarks | `shape_predictor_68_face_landmarks.dat` | 96 MB | Yes | [Download](https://drive.google.com/file/d/YOUR_GDRIVE_FILE_ID/view) |
+| FADING (diffusion) | `fading/` (folder, zipped) | 5.2 GB | No | [Download](https://drive.google.com/file/d/YOUR_GDRIVE_FILE_ID/view) |
+
+> **Note:** Replace `YOUR_GDRIVE_FILE_ID` with actual IDs after uploading to Google Drive.  
+> Also update the IDs inside `download_checkpoints.py` to enable auto-download.
+
+### FADING Diffusion Model — Special Notes
+
+The FADING model (`fading/`) is a fine-tuned Stable Diffusion pipeline and has three execution modes:
+
+| Scenario | Behaviour |
+|---|---|
+| CUDA GPU with 6–8 GB VRAM | Loads locally from `checkpoints/fading/` |
+| No local GPU, Modal configured | Sends images to Modal serverless cloud GPU |
+| No GPU, no Modal | Skipped; falls back to SAM → GAN → OpenCV |
+
+**To use Modal cloud GPU (no local GPU required):**
+
+1. Create a free account at [modal.com](https://modal.com)
+2. Deploy the FADING endpoint from your Modal workspace
+3. Set the endpoint URL as an environment variable:
+   ```bash
+   export FADING_MODAL_ENDPOINT=https://your-workspace--fading-inference.modal.run
+   ```
+   Or add it to Django settings:
+   ```python
+   # agevision_backend/agevision_backend/settings.py
+   FADING_MODAL_ENDPOINT = "https://your-workspace--fading-inference.modal.run"
+   ```
+
+### Age Progression Fallback Chain
+
+The system automatically falls back if a model is unavailable:
+
+```
+SAM Indian  →  SAM FFHQ  →  Fast-AgingGAN  →  FADING  →  Rule-based OpenCV
+ (best)                                        (cloud)       (no GPU needed)
+```
+
+This means the app works on any machine — quality degrades gracefully based on available hardware.
+
+### How to Upload Checkpoints to Google Drive
+
+1. Open [Google Drive](https://drive.google.com) and create a folder called `AgeVision-Checkpoints`
+2. Upload each file listed in the table above
+3. For the FADING model — zip the entire `fading/finetune_double_prompt_150_random/` folder first, name it `fading_model.zip`, then upload
+4. For each uploaded file: **right-click → Share → change to "Anyone with the link" → Viewer**
+5. Copy the share link. The file ID is the string between `/d/` and `/view`:
+   ```
+   https://drive.google.com/file/d/1abc123XYZ.../view
+                                    ^^^^^^^^^^^^
+                                    This is the ID
+   ```
+6. Replace `YOUR_GDRIVE_FILE_ID` in `download_checkpoints.py` and in the table above
+7. Commit the updated `download_checkpoints.py`
 
 ---
 
@@ -229,14 +287,14 @@ python run.py --input photo.jpg --output ./results --ages 30,50,70 --current-age
 # Faster run without deep identity metrics
 python run.py --input ./images --output ./results --no-deep
 
-# CPU only (no GPU)
+# CPU only
 python run.py --input ./images --output ./results --device cpu
 ```
 
 **Output structure:**
 ```
 results/
-├── <name>_age20.jpg        # Aged images per target age
+├── <name>_age20.jpg        # Aged image per target age
 ├── <name>_age40.jpg
 ├── <name>_grid.jpg         # Side-by-side comparison grid
 ├── metrics.json            # SSIM, PSNR, identity scores
@@ -245,53 +303,40 @@ results/
 
 ---
 
-## Files Not in Git (Important — Must Be Set Up Manually)
-
-These are gitignored because they are too large or environment-specific:
-
-| Path | Size | Why Needed |
-|---|---|---|
-| `agevision_backend/checkpoints/` | ~6.5 GB | All ML models — app won't run without them |
-| `agevision_backend/media/` | varies | User-uploaded images (generated at runtime) |
-| `agevision_backend/datasets/` | 8.1 MB | MiVOLO Indian face training data |
-| `age_vision_logo.png` | 6.9 MB | Logo used in generated reports |
-| `screenshots/` | 42 MB | Figure screenshots for Word/PDF report generation |
-| `images/` | 2.3 MB | Test face samples for CLI pipeline (`python run.py --input ./images`) |
-| `agevision_backend/db.sqlite3` | varies | SQLite DB (used only as Django fallback) |
-
----
-
 ## Running Tests
 
 ```bash
 cd agevision_backend
-
-# Auth system
-python test_auth.py
-
-# Age prediction accuracy
-python test_age_prediction.py
-
-# GAN accuracy evaluation
-python test_gan_accuracy.py
-
-# End-to-end API
-python test_api_e2e.py
-
-# MongoDB integration
-python test_mongodb_e2e.py
+python test_auth.py             # Auth system
+python test_age_prediction.py   # Age prediction accuracy
+python test_gan_accuracy.py     # GAN progression accuracy
+python test_api_e2e.py          # End-to-end API
+python test_mongodb_e2e.py      # MongoDB integration
 ```
+
+---
+
+## Files Not in Git
+
+These are gitignored and must be set up manually or downloaded:
+
+| Path | Size | How to Get |
+|---|---|---|
+| `agevision_backend/checkpoints/` | ~6.5 GB | Run `python download_checkpoints.py` |
+| `agevision_backend/media/` | varies | Created automatically at runtime |
+| `agevision_backend/datasets/` | 8.1 MB | Training data — not needed to run the app |
+| `age_vision_logo.png` | 6.9 MB | Needed only for report generation |
+| `screenshots/` | 42 MB | Needed only for report generation |
+| `images/` | 2.3 MB | Test samples for `python run.py --input ./images` |
+| `node_modules/` | 409 MB | Restored automatically by `npm install` |
 
 ---
 
 ## Generating the Project Report
 
 ```bash
-# Word (.docx) report
-python scripts/build_final_report.py
-
-# PDF report
-python scripts/build_final_report_pdf.py
+python scripts/build_final_report.py      # Word (.docx)
+python scripts/build_final_report_pdf.py  # PDF
 ```
 
-Requires `screenshots/` directory and `age_vision_logo.png` to be present for figures. Falls back to placeholder boxes if images are missing.
+Requires `screenshots/` and `age_vision_logo.png` to be present for figures. Falls back to placeholder boxes if images are missing.
