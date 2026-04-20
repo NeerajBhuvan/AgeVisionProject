@@ -186,16 +186,13 @@ They are hosted on Google Drive and downloaded automatically by `download_checkp
 
 | Model | File | Size | Required | Google Drive |
 |---|---|---|---|---|
-| SAM (Indian) | `sam_indian_best.pt` | 2.2 GB | Yes | [Download](https://drive.google.com/file/d/YOUR_GDRIVE_FILE_ID/view) |
-| SAM (FFHQ) | `sam_ffhq_aging.pt` | 2.2 GB | Yes | [Download](https://drive.google.com/file/d/YOUR_GDRIVE_FILE_ID/view) |
-| HRFAE GAN | `hrfae_best.pth` | 50 MB | Yes | [Download](https://drive.google.com/file/d/YOUR_GDRIVE_FILE_ID/view) |
-| Fast-AgingGAN | `fast_aging_gan.pth` | 11 MB | No | [Download](https://drive.google.com/file/d/YOUR_GDRIVE_FILE_ID/view) |
-| MiVOLO | `mivolo_indian/mivolo_indian_best.pt` | 110 MB | Yes | [Download](https://drive.google.com/file/d/YOUR_GDRIVE_FILE_ID/view) |
-| dlib Landmarks | `shape_predictor_68_face_landmarks.dat` | 96 MB | Yes | [Download](https://drive.google.com/file/d/YOUR_GDRIVE_FILE_ID/view) |
-| FADING (diffusion) | `fading/` (folder, zipped) | 5.2 GB | No | [Download](https://drive.google.com/file/d/YOUR_GDRIVE_FILE_ID/view) |
-
-> **Note:** Replace `YOUR_GDRIVE_FILE_ID` with actual IDs after uploading to Google Drive.  
-> Also update the IDs inside `download_checkpoints.py` to enable auto-download.
+| SAM (Indian) | `sam_indian_best.pt` | 2.2 GB | Yes | [Download](https://drive.google.com/file/d/1kQbJlKFv3MxnmYbWzp0BFM3jJcPshQMy/view) |
+| SAM (FFHQ) | `sam_ffhq_aging.pt` | 2.2 GB | Yes | [Download](https://drive.google.com/file/d/1u_8VUyZlRUPJik5zUC2ZbrjmPNaEWvKI/view) |
+| HRFAE GAN | `hrfae_best.pth` | 50 MB | Yes | [Download](https://drive.google.com/file/d/1ro-icYhFKvTuvl7pfEVSY-Hc6dp8kp31/view) |
+| Fast-AgingGAN | `fast_aging_gan.pth` | 11 MB | No | [Download](https://drive.google.com/file/d/1e2yxCtx07EK7WdOD1dy9-h68GenS_i5Y/view) |
+| MiVOLO | `mivolo_indian/mivolo_indian_best.pt` | 110 MB | Yes | [Download](https://drive.google.com/file/d/1z6wmcV21aPIAOY6WqNLS9rOzQW9EtzYA/view) |
+| dlib Landmarks | `shape_predictor_68_face_landmarks.dat` | 96 MB | Yes | [Download](https://drive.google.com/file/d/1ro-AaviWt3y7irUGx-lSRGzfDV1uHTnD/view) |
+| FADING (diffusion) | `fading/` (folder, zipped) | 5.2 GB | No | [Download](https://drive.google.com/file/d/1tWV_OQYtUSd2HtnDbHj-M1zqOR9p--Xc/view) |
 
 ### FADING Diffusion Model — Special Notes
 

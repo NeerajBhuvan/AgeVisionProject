@@ -183,7 +183,7 @@ def upload_file(service, local_path: str, filename: str,
         bar.update(file_size - bar.n)
 
     file_id = response["id"]
-    print(f"  Done: {filename} → {file_id}")
+    print(f"  Done: {filename} -> {file_id}")
     return file_id
 
 

@@ -39,7 +39,7 @@ MODELS = {
     # ── SAM: Style-based Age Manipulation ────────────────────
     # Upload: agevision_backend/checkpoints/sam_indian_best.pt  (2.2 GB)
     "sam_indian": {
-        "gdrive_id":   "YOUR_GDRIVE_FILE_ID",
+        "gdrive_id":   "1kQbJlKFv3MxnmYbWzp0BFM3jJcPshQMy",
         "output_path": os.path.join(CHECKPOINTS_DIR, "sam_indian_best.pt"),
         "size":        "2.2 GB",
         "description": "SAM fine-tuned on Indian face dataset",
@@ -47,7 +47,7 @@ MODELS = {
     },
     # Upload: agevision_backend/checkpoints/sam_ffhq_aging.pt  (2.2 GB)
     "sam_ffhq": {
-        "gdrive_id":   "YOUR_GDRIVE_FILE_ID",
+        "gdrive_id":   "1u_8VUyZlRUPJik5zUC2ZbrjmPNaEWvKI",
         "output_path": os.path.join(CHECKPOINTS_DIR, "sam_ffhq_aging.pt"),
         "size":        "2.2 GB",
         "description": "SAM pretrained on FFHQ dataset",
@@ -57,7 +57,7 @@ MODELS = {
     # ── HRFAE: High-Resolution Face Age Editing GAN ──────────
     # Upload: agevision_backend/checkpoints/hrfae_best.pth  (50 MB)
     "hrfae": {
-        "gdrive_id":   "YOUR_GDRIVE_FILE_ID",
+        "gdrive_id":   "1ro-icYhFKvTuvl7pfEVSY-Hc6dp8kp31",
         "output_path": os.path.join(CHECKPOINTS_DIR, "hrfae_best.pth"),
         "size":        "50 MB",
         "description": "HRFAE GAN weights (used by CLI pipeline)",
@@ -67,7 +67,7 @@ MODELS = {
     # ── Fast-AgingGAN ─────────────────────────────────────────
     # Upload: agevision_backend/checkpoints/fast_aging_gan.pth  (11 MB)
     "fast_aging": {
-        "gdrive_id":   "YOUR_GDRIVE_FILE_ID",
+        "gdrive_id":   "1e2yxCtx07EK7WdOD1dy9-h68GenS_i5Y",
         "output_path": os.path.join(CHECKPOINTS_DIR, "fast_aging_gan.pth"),
         "size":        "11 MB",
         "description": "Fast CycleGAN-based aging model",
@@ -78,7 +78,7 @@ MODELS = {
     # Upload: agevision_backend/checkpoints/mivolo_indian/mivolo_indian_best.pt  (110 MB)
     # Upload the file directly (not the folder). The script creates the folder.
     "mivolo": {
-        "gdrive_id":   "YOUR_GDRIVE_FILE_ID",
+        "gdrive_id":   "1z6wmcV21aPIAOY6WqNLS9rOzQW9EtzYA",
         "output_path": os.path.join(CHECKPOINTS_DIR, "mivolo_indian",
                                     "mivolo_indian_best.pt"),
         "size":        "110 MB",
@@ -89,7 +89,7 @@ MODELS = {
     # ── dlib Face Landmarks ───────────────────────────────────
     # Upload: agevision_backend/checkpoints/shape_predictor_68_face_landmarks.dat  (96 MB)
     "dlib_landmarks": {
-        "gdrive_id":   "YOUR_GDRIVE_FILE_ID",
+        "gdrive_id":   "1ro-AaviWt3y7irUGx-lSRGzfDV1uHTnD",
         "output_path": os.path.join(CHECKPOINTS_DIR,
                                     "shape_predictor_68_face_landmarks.dat"),
         "size":        "96 MB",
@@ -104,7 +104,7 @@ MODELS = {
     #   Upload: fading_model.zip to Google Drive  (~5.2 GB)
     # The script downloads and extracts it automatically.
     "fading": {
-        "gdrive_id":   "YOUR_GDRIVE_FILE_ID",
+        "gdrive_id":   "1tWV_OQYtUSd2HtnDbHj-M1zqOR9p--Xc",
         "output_path": os.path.join(CHECKPOINTS_DIR, "fading", "fading_model.zip"),
         "extract_to":  os.path.join(CHECKPOINTS_DIR, "fading"),
         "size":        "5.2 GB",
