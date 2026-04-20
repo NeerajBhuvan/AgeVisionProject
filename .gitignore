@@ -80,8 +80,10 @@ download_samples.py
 # Jupyter notebooks (training)
 sam-finetune.ipynb
 
-# Generated Word/report documents
+# Generated Word/report documents (thesis folder excluded from this rule)
 *.docx
+!thesis/*.docx
+!thesis/*.pdf
 
 # Google Drive uploader artifacts
 gdrive_token.json
