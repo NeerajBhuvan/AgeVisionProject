@@ -79,3 +79,10 @@ download_samples.py
 
 # Jupyter notebooks (training)
 sam-finetune.ipynb
+
+# Generated Word/report documents
+*.docx
+
+# Report generation assets (not app assets)
+screenshots/
+anna_university_logo.png
