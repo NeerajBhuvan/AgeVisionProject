@@ -83,6 +83,11 @@ sam-finetune.ipynb
 # Generated Word/report documents
 *.docx
 
+# Google Drive uploader artifacts
+gdrive_token.json
+gdrive_client_secrets.json
+fading_model.zip
+
 # Report generation assets (not app assets)
 screenshots/
 anna_university_logo.png
