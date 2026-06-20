@@ -6,8 +6,8 @@ A full-stack AI system for age prediction, age progression, and face recognition
 
 ## Features
 
-- **Age Prediction** — Predict age, gender, emotion, and race from a face image using MiVOLO + InsightFace ensemble
-- **Age Progression** — Generate realistic aged/de-aged versions of a face (GAN + optional diffusion model)
+- **Age Prediction** — Predict age, gender, and emotion from a face image using **MiVOLO v2** (runs locally on CPU — no GPU or cloud round-trip)
+- **Age Progression** — Generate realistic aged/de-aged versions of a face (local GAN/OpenCV chain + optional FADING diffusion on a cloud GPU)
 - **Batch Processing** — Process multiple images in one request
 - **Camera Stream** — Real-time age prediction from webcam feed
 - **Admin Panel** — User management, system health monitoring, analytics dashboard
@@ -20,27 +20,28 @@ A full-stack AI system for age prediction, age progression, and face recognition
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│  Angular 19 Frontend  (agevision-frontend/)             │
-│  Auth · Dashboard · Predict · Progress · Admin          │
-└───────────────────┬─────────────────────────────────────┘
-                    │ REST API (JWT)
-┌───────────────────▼─────────────────────────────────────┐
-│  Django 5.2 REST API  (agevision_backend/)              │
-│                                                         │
-│  agevision_api/          age_progression/               │
-│  ├─ age_predictor.py     └─ (alternative aging app)     │
-│  ├─ gan_progression.py                                  │
-│  ├─ mivolo_predictor.py                                 │
-│  ├─ insightface_predictor.py                            │
-│  └─ mongodb.py (data layer)                             │
-└───────┬───────────────────────────┬─────────────────────┘
-        │                           │
-┌───────▼───────┐         ┌─────────▼──────┐
-│   MongoDB     │         │  ML Checkpoints │
-│  (user data,  │         │  checkpoints/   │
-│  predictions) │         │  ~6.5 GB        │
-└───────────────┘         └────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│  Angular 19 Frontend  (agevision-frontend/)                    │
+│  Auth · Dashboard · Predict · Progress · History · Admin       │
+└───────────────────────┬────────────────────────────────────────┘
+                        │ same-origin REST + JWT
+                        │ (dev: proxy.conf.json · prod: nginx)
+┌───────────────────────▼────────────────────────────────────────┐
+│  Django 5.2 REST API  (agevision_backend/)                     │
+│                                                                │
+│  agevision_api/                                                │
+│  ├─ age_predictor.py      → MiVOLO v2 prediction (LOCAL CPU)   │
+│  ├─ mivolo_predictor.py     MiVOLO + YOLOv8 + emotion          │
+│  ├─ gan_progression.py    → SAM / Fast-Aging / OpenCV (local)  │
+│  ├─ storage.py              local media storage                │
+│  └─ mongodb.py              data layer                          │
+└───────┬───────────────────────────────┬───────────────────────┘
+        │                               │
+┌───────▼────────┐            ┌─────────▼─────────────┐
+│ MongoDB+SQLite │            │  Modal cloud GPU      │
+│ (user data,    │            │  (FADING diffusion    │
+│  predictions)  │            │   aging — optional)   │
+└────────────────┘            └───────────────────────┘
 ```
 
 ---
@@ -52,11 +53,12 @@ A full-stack AI system for age prediction, age progression, and face recognition
 | Frontend | Angular 19, Bootstrap 5, Chart.js, jsPDF |
 | Backend | Django 5.2, Django REST Framework, SimpleJWT |
 | Database | MongoDB (primary), SQLite (fallback) |
-| Age Prediction | MiVOLO, InsightFace, YOLO |
+| Age Prediction | MiVOLO v2 + YOLOv8 + emotion (local CPU) |
 | Age Progression | HRFAE GAN, SAM (Style-based Aging Model) |
-| Diffusion Aging | Stable Diffusion (FADING, prompt-to-prompt) |
-| Face Detection | Caffe SSD, dlib, OpenCV Haar cascade |
-| ML Frameworks | PyTorch, TensorFlow, ONNX Runtime |
+| Diffusion Aging | Stable Diffusion (FADING, prompt-to-prompt) — Modal cloud GPU |
+| Face Detection | YOLOv8 (prediction), Caffe SSD / dlib / OpenCV Haar (pipeline) |
+| ML Frameworks | PyTorch, TensorFlow |
+| Deployment | nginx + waitress (WSGI) + WhiteNoise, Cloudflare Tunnel |
 
 ---
 
@@ -78,17 +80,19 @@ AgeVisionProject/
 │
 ├── agevision_backend/              # Django REST API
 │   ├── manage.py
+│   ├── serve.py                    # waitress production entrypoint (Windows)
 │   ├── agevision_backend/          # Django project config
-│   │   ├── settings.py
+│   │   ├── settings.py             # env-driven (reads .env)
 │   │   └── urls.py
 │   ├── agevision_api/              # Main API app
 │   │   ├── views/                  # 7 view modules (auth, predict, progress,
 │   │   │                           #   history, analytics, settings, admin)
-│   │   ├── age_predictor.py        # Prediction orchestration
+│   │   ├── age_predictor.py        # Prediction orchestration (local MiVOLO)
+│   │   ├── mivolo_predictor.py     # MiVOLO v2 + YOLOv8 + emotion (local CPU)
 │   │   ├── gan_progression.py      # GAN-based age progression
-│   │   ├── mivolo_predictor.py     # MiVOLO age estimation
-│   │   ├── insightface_predictor.py
 │   │   ├── emotion_detector.py
+│   │   ├── storage.py              # Local media storage helper
+│   │   ├── insightface_predictor.py  # legacy fallback (no longer wired in)
 │   │   ├── mongodb.py              # All MongoDB data access
 │   │   ├── crypto.py               # Fernet encryption
 │   │   ├── hrfae/                  # HRFAE GAN model
@@ -118,8 +122,10 @@ AgeVisionProject/
 
 - Python 3.9+ (3.13 recommended)
 - Node.js 18+ and npm
-- MongoDB 6.0+
-- CUDA GPU recommended (GTX 1080 Ti / RTX 3080 or better for diffusion model)
+- MongoDB 6.0+ (local service or Atlas)
+- **No GPU required** — age prediction runs on CPU. A CUDA GPU is optional and only
+  accelerates the FADING diffusion aging model; without one, FADING runs on a Modal
+  cloud GPU (or falls back to the local SAM → GAN → OpenCV chain).
 
 ---
 
@@ -147,15 +153,27 @@ python download_checkpoints.py
 This downloads all models from Google Drive into `agevision_backend/checkpoints/`.  
 See the [Model Checkpoints](#model-checkpoints) section below for details on each model.
 
-### 4. Configure MongoDB
+### 4. Configure environment variables
 
-Start MongoDB locally or use Atlas. Default connection:
-```
-mongodb://localhost:27017/agevision
-```
-To use a custom URI, edit `MONGO_URI` in `agevision_backend/agevision_backend/settings.py`.
+Copy the example env file and fill in your values:
 
-### 5. Start the backend
+```bash
+cp .env.example agevision_backend/.env
+```
+
+`agevision_backend/.env` (git-ignored) drives all deployment config — Django
+`SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, the MongoDB connection (`MONGO_URI`),
+`CORS_ORIGINS`, and `FADING_MODAL_ENDPOINT`. For a plain local run the defaults
+in `settings.py` already work, so you only need `.env` to point at a non-local
+MongoDB or the Modal FADING endpoint.
+
+### 5. Configure MongoDB
+
+Start a local MongoDB service (default `mongodb://localhost:27017`, database
+`agevision_db`) or use MongoDB Atlas. To use Atlas or any custom URI, set
+`MONGO_URI` in `agevision_backend/.env` — no code changes needed.
+
+### 6. Start the backend
 
 ```bash
 cd agevision_backend
@@ -163,9 +181,11 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-Backend runs at `http://localhost:8000`.
+Backend runs at `http://localhost:8000`. The first `/api/predict/` request loads
+the MiVOLO + YOLO + emotion weights into memory (~10–30s, one-time); every
+prediction after that returns in a few seconds.
 
-### 6. Start the frontend
+### 7. Start the frontend
 
 ```bash
 cd agevision-frontend
@@ -173,7 +193,13 @@ npm install
 ng serve
 ```
 
-Frontend runs at `http://localhost:4200`.
+Frontend runs at `http://localhost:4200`. The dev server proxies `/api` and
+`/media` to Django on `:8000` via `proxy.conf.json`, so the API URL is relative —
+the same build works on localhost or a LAN IP with no hard-coded host.
+
+> **More detail:** see [RUN_LOCAL.md](RUN_LOCAL.md) for the full local workflow and
+> [PRODUCTION.md](PRODUCTION.md) for the production deployment (nginx + waitress +
+> WhiteNoise, fronted by a Cloudflare Tunnel).
 
 ---
 
@@ -212,10 +238,10 @@ The FADING model (`fading/`) is a fine-tuned Stable Diffusion pipeline and has t
    ```bash
    export FADING_MODAL_ENDPOINT=https://your-workspace--fading-inference.modal.run
    ```
-   Or add it to Django settings:
-   ```python
-   # agevision_backend/agevision_backend/settings.py
-   FADING_MODAL_ENDPOINT = "https://your-workspace--fading-inference.modal.run"
+   Or add it to `agevision_backend/.env` (preferred — picked up automatically):
+   ```bash
+   # agevision_backend/.env
+   FADING_MODAL_ENDPOINT=https://your-workspace--fading-inference.modal.run
    ```
 
 ### Age Progression Fallback Chain
@@ -320,7 +346,9 @@ These are gitignored and must be set up manually or downloaded:
 | Path | Size | How to Get |
 |---|---|---|
 | `agevision_backend/checkpoints/` | ~6.5 GB | Run `python download_checkpoints.py` |
+| `agevision_backend/.env` | tiny | Copy from `.env.example` and fill in (see Setup) |
 | `agevision_backend/media/` | varies | Created automatically at runtime |
+| `agevision_backend/staticfiles/` | ~4 MB | Run `python manage.py collectstatic` (prod only) |
 | `agevision_backend/datasets/` | 8.1 MB | Training data — not needed to run the app |
 | `age_vision_logo.png` | 6.9 MB | Needed only for report generation |
 | `screenshots/` | 42 MB | Needed only for report generation |
