@@ -92,11 +92,17 @@
   align-items: start;
 }
 
-.pred-left, .pred-right {
+.pred-left, .pred-right, .pred-samples {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
+
+/* Desktop: upload (top-left), samples (below it, left), results span the right
+   column — so the right column's height doesn't push the samples down. */
+.pred-left    { grid-column: 1; grid-row: 1; }
+.pred-samples { grid-column: 1; grid-row: 2; }
+.pred-right   { grid-column: 2; grid-row: 1 / span 2; }
 
 /* ─── Upload Dropzone ─── */
 .upload-drop {
@@ -695,6 +701,9 @@
 /* ─── Responsive ─── */
 @media (max-width: 1100px) {
   .pred-grid { grid-template-columns: 1fr; }
+  /* Single column: stack in DOM order — upload + Analyze, then the result,
+     then the sample photos. Keeps the result right under the Analyze button. */
+  .pred-left, .pred-right, .pred-samples { grid-column: 1; grid-row: auto; }
   .sample-grid { grid-template-columns: repeat(4, 1fr); }
   .group-sample-grid { grid-template-columns: 1fr 1fr; }
 }

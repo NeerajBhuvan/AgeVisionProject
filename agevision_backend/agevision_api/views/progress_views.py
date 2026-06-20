@@ -91,6 +91,14 @@ def progress_view(request):
     try:
         # -- Step 1: Detect current age using MiVOLO (same model as predict page) --
         age_result = predict_group_faces(temp_path)
+
+        # No face → don't run the aging pipeline on a faceless image.
+        if age_result.get('face_count', 0) == 0:
+            return Response(
+                {'error': 'No face detected in the image. Please upload a clear, front-facing photo.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         current_age = int(age_result['predicted_age']) or 25
         gender = age_result.get('gender', 'Unknown')
 
@@ -239,6 +247,16 @@ def progress_stream_view(request):
             }))
             age_t0 = time.time()
             age_result = predict_group_faces(temp_path)
+
+            # Abort early if there's no face — don't run the aging pipeline on a
+            # faceless image (it would otherwise default to age 25 and produce
+            # a meaningless result).
+            if age_result.get('face_count', 0) == 0:
+                event_queue.put(('error', {
+                    'error': 'No face detected in the image. Please upload a clear, front-facing photo.'
+                }))
+                return
+
             current_age = int(age_result['predicted_age']) or 25
             gender = age_result.get('gender', 'Unknown')
             age_time = round((time.time() - age_t0) * 1000, 2)

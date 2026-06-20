@@ -67,44 +67,6 @@
           </div>
         </div>
 
-        <!-- Single Face Samples -->
-        <div class="card card-p">
-          <div class="section-title" style="font-size:0.95rem;margin-bottom:12px"><i class="fa-solid fa-user"></i> Single Face Samples</div>
-          <div class="sample-sub">Click a photo to test single-face age prediction</div>
-          <div class="sample-grid">
-            <button type="button" class="sample-item"
-                    *ngFor="let s of singleSamples"
-                    (click)="selectSample(s)"
-                    [class.loading]="loadingSample"
-                    [disabled]="loadingSample"
-                    [attr.aria-label]="'Use sample ' + s.label">
-              <img [src]="'samples/' + s.file" [alt]="s.label" loading="lazy" />
-              <div class="sample-info">
-                <span class="sample-name">{{ s.label }}</span>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        <!-- Group Samples -->
-        <div class="card card-p">
-          <div class="section-title" style="font-size:0.95rem;margin-bottom:12px"><i class="fa-solid fa-users"></i> Group Samples</div>
-          <div class="sample-sub">Test multi-face detection with group photos</div>
-          <div class="group-sample-grid">
-            <button type="button" class="group-sample-item"
-                    *ngFor="let g of groupSamples"
-                    (click)="selectGroupSample(g)"
-                    [class.loading]="loadingSample"
-                    [disabled]="loadingSample"
-                    [attr.aria-label]="'Use group sample ' + g.label">
-              <img [src]="'samples/' + g.file" [alt]="g.label" loading="lazy" />
-              <div class="sample-info">
-                <span class="sample-name">{{ g.label }}</span>
-                <span class="sample-age"><i class="fa-solid fa-users" style="font-size:0.55rem"></i> {{ g.faces }} faces</span>
-              </div>
-            </button>
-          </div>
-        </div>
       </ng-container>
 
       <!-- ───── CAMERA MODE ───── -->
@@ -219,9 +181,18 @@
       <div class="card card-p">
         <div class="section-title" style="font-size:0.95rem;margin-bottom:16px"><i class="fa-solid fa-bullseye"></i> Results</div>
         <div *ngIf="!showResults" class="pred-empty">
-          <div style="font-size:2.5rem;margin-bottom:10px"><i class="fa-solid fa-user" style="color:var(--muted)"></i></div>
-          <div style="color:var(--muted);font-size:0.82rem" *ngIf="mode === 'upload'">Upload an image and click Analyze to see results</div>
-          <div style="color:var(--muted);font-size:0.82rem" *ngIf="mode === 'camera'">Start camera to detect faces in real time</div>
+          <!-- No face detected -->
+          <ng-container *ngIf="noFaceDetected">
+            <div style="font-size:2.5rem;margin-bottom:10px"><i class="fa-solid fa-face-frown" style="color:var(--accent4)"></i></div>
+            <div style="color:var(--accent4);font-size:0.9rem;font-weight:700;margin-bottom:4px">No face detected</div>
+            <div style="color:var(--muted);font-size:0.78rem">We couldn't find a face in this image. Try a clearer, front-facing photo.</div>
+          </ng-container>
+          <!-- Default prompt -->
+          <ng-container *ngIf="!noFaceDetected">
+            <div style="font-size:2.5rem;margin-bottom:10px"><i class="fa-solid fa-user" style="color:var(--muted)"></i></div>
+            <div style="color:var(--muted);font-size:0.82rem" *ngIf="mode === 'upload'">Upload an image and click Analyze to see results</div>
+            <div style="color:var(--muted);font-size:0.82rem" *ngIf="mode === 'camera'">Start camera to detect faces in real time</div>
+          </ng-container>
         </div>
         <div *ngIf="showResults">
           <div class="result-big-number">
@@ -316,6 +287,50 @@
         <div class="settings-info-row" *ngIf="mode === 'camera'">
           <span class="sir-label">Mode</span>
           <span class="sir-value">Real-time Camera</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sample photos (upload mode). Placed after the results column so that on
+         mobile the result appears directly below the Analyze button, with the
+         samples beneath it; on desktop they sit under the upload card. -->
+    <div class="pred-samples" *ngIf="mode === 'upload'">
+      <!-- Single Face Samples -->
+      <div class="card card-p">
+        <div class="section-title" style="font-size:0.95rem;margin-bottom:12px"><i class="fa-solid fa-user"></i> Single Face Samples</div>
+        <div class="sample-sub">Click a photo to test single-face age prediction</div>
+        <div class="sample-grid">
+          <button type="button" class="sample-item"
+                  *ngFor="let s of singleSamples"
+                  (click)="selectSample(s)"
+                  [class.loading]="loadingSample"
+                  [disabled]="loadingSample"
+                  [attr.aria-label]="'Use sample ' + s.label">
+            <img [src]="'samples/' + s.file" [alt]="s.label" loading="lazy" />
+            <div class="sample-info">
+              <span class="sample-name">{{ s.label }}</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Group Samples -->
+      <div class="card card-p">
+        <div class="section-title" style="font-size:0.95rem;margin-bottom:12px"><i class="fa-solid fa-users"></i> Group Samples</div>
+        <div class="sample-sub">Test multi-face detection with group photos</div>
+        <div class="group-sample-grid">
+          <button type="button" class="group-sample-item"
+                  *ngFor="let g of groupSamples"
+                  (click)="selectGroupSample(g)"
+                  [class.loading]="loadingSample"
+                  [disabled]="loadingSample"
+                  [attr.aria-label]="'Use group sample ' + g.label">
+            <img [src]="'samples/' + g.file" [alt]="g.label" loading="lazy" />
+            <div class="sample-info">
+              <span class="sample-name">{{ g.label }}</span>
+              <span class="sample-age"><i class="fa-solid fa-users" style="font-size:0.55rem"></i> {{ g.faces }} faces</span>
+            </div>
+          </button>
         </div>
       </div>
     </div>

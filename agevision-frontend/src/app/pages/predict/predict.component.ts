@@ -46,6 +46,7 @@ export class PredictComponent implements OnInit, OnDestroy {
   isDragging = false;
   isAnalyzing = false;
   showResults = false;
+  noFaceDetected = false;
   errorMessage = '';
 
   // Results (shared by upload + camera)
@@ -158,6 +159,7 @@ export class PredictComponent implements OnInit, OnDestroy {
     if (!this.selectedFile) return;
     this.isAnalyzing = true;
     this.showResults = false;
+    this.noFaceDetected = false;
     this.errorMessage = '';
 
     const formData = new FormData();
@@ -167,12 +169,25 @@ export class PredictComponent implements OnInit, OnDestroy {
       next: (res: PredictionResponse) => {
         const p = res.prediction;
         this.faces = res.faces || [];
-        this.selectedFaceIndex = 0;
         this.faceCount = p.face_count;
         this.processingTime = p.processing_time_ms;
-        this.faceDetected = p.face_count > 0;
-        this.applyFaceResult(this.selectedFaceIndex);
         this.isAnalyzing = false;
+
+        // No face detected — don't show a stale/placeholder age.
+        if (!p.face_count || this.faces.length === 0) {
+          this.faceDetected = false;
+          this.noFaceDetected = true;
+          this.showResults = false;
+          this.notif.warning(
+            'No Face Detected',
+            'No face was found in the image. Try a clearer, front-facing photo.'
+          );
+          return;
+        }
+
+        this.selectedFaceIndex = 0;
+        this.faceDetected = true;
+        this.applyFaceResult(this.selectedFaceIndex);
         this.showResults = true;
         this.notif.success(
           'Prediction Complete',
@@ -404,9 +419,12 @@ export class PredictComponent implements OnInit, OnDestroy {
 
   private resetResults(): void {
     this.showResults = false;
+    this.noFaceDetected = false;
     this.faceDetected = false;
     this.faces = [];
     this.selectedFaceIndex = 0;
+    this.predictedAge = 0;
+    this.ageRange = { min: 0, max: 0 };
     this.gender = '';
     this.emotion = '';
     this.faceCount = 0;

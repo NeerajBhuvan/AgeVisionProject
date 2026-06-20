@@ -348,7 +348,13 @@ export class ProgressComponent implements OnInit, OnDestroy {
                   if (s.status === 'running') s.status = 'error';
                 });
                 this.errorMessage = parsed.error || 'Pipeline failed';
-                this.notif.error('Progression Failed', this.errorMessage);
+                // "No face" is a user-input issue, not a pipeline failure —
+                // surface it as a clear warning like the Predict page does.
+                if (/no face/i.test(this.errorMessage)) {
+                  this.notif.warning('No Face Detected', this.errorMessage);
+                } else {
+                  this.notif.error('Progression Failed', this.errorMessage);
+                }
                 this.cdr.detectChanges();
                 break;
             }

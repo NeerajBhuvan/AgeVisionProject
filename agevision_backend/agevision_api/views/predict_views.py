@@ -108,9 +108,10 @@ def predict_view(request):
             age_std=float(_to_native(result.get('age_std', 0.0))),
         )
 
-        # Honor the user's "Save results to history" preference. When off, we
-        # still return the prediction (so they see it) but don't persist it.
-        if _save_to_history(request.user.id):
+        # Don't persist a "no face detected" result, and honor the user's
+        # "Save results to history" preference. Either way we still return the
+        # prediction payload so the UI can react.
+        if int(result['face_count']) > 0 and _save_to_history(request.user.id):
             record = MongoPredictionManager.create(**record_fields)
         else:
             record = {**record_fields, 'created_at': None}
