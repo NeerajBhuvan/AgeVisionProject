@@ -1,6 +1,8 @@
 <div class="page">
-  <div class="section-title"><i class="fa-solid fa-chart-bar"></i> Deep <span class="gradient-text">Analytics</span></div>
-  <div class="section-sub">Insights and performance metrics for your age analysis.</div>
+  <header class="page-head">
+    <div class="section-title"><i class="fa-solid fa-chart-bar"></i> Deep <span class="gradient-text">Analytics</span></div>
+    <div class="section-sub">Insights and performance metrics for your age analysis.</div>
+  </header>
 
   <!-- Loading -->
   <div *ngIf="loading" class="loading-state">
@@ -8,9 +10,9 @@
   </div>
 
   <ng-container *ngIf="!loading">
-    <!-- KPI Row -->
-    <div class="analytics-top">
-      <div class="card card-p">
+    <!-- ─── KPI ROW ─── -->
+    <section class="kpi-grid">
+      <div class="card card-p kpi-card">
         <div class="stat-card">
           <div class="stat-icon icon-purple"><i class="fa-solid fa-chart-bar"></i></div>
           <div class="stat-body">
@@ -21,7 +23,7 @@
           </div>
         </div>
       </div>
-      <div class="card card-p">
+      <div class="card card-p kpi-card">
         <div class="stat-card">
           <div class="stat-icon icon-green"><i class="fa-solid fa-bullseye"></i></div>
           <div class="stat-body">
@@ -31,7 +33,7 @@
           </div>
         </div>
       </div>
-      <div class="card card-p">
+      <div class="card card-p kpi-card">
         <div class="stat-card">
           <div class="stat-icon icon-orange"><i class="fa-solid fa-cake-candles"></i></div>
           <div class="stat-body">
@@ -41,7 +43,7 @@
           </div>
         </div>
       </div>
-      <div class="card card-p">
+      <div class="card card-p kpi-card">
         <div class="stat-card">
           <div class="stat-icon icon-deepurple"><i class="fa-solid fa-masks-theater"></i></div>
           <div class="stat-body">
@@ -52,240 +54,287 @@
           </div>
         </div>
       </div>
+    </section>
+
+    <!-- ─── PAIRS 1 & 2 ─── -->
+    <section class="analytics-grid">
+
+      <!-- Pair 1: Activity Highlights | Weekly Activity -->
+      <div class="card card-p chart-card activity-highlight">
+        <div class="card-title"><i class="fa-solid fa-rocket"></i> Activity Highlights</div>
+        <div class="card-body ah-body">
+          <div class="ah-big">{{ weekPredictions + weekProgressions }}</div>
+          <div class="ah-sub">total runs this week</div>
+          <div class="ah-grid">
+            <div class="ah-cell">
+              <span class="ah-cell-label">Predictions</span>
+              <span class="ah-cell-val">{{ weekPredictions }}</span>
+            </div>
+            <div class="ah-cell">
+              <span class="ah-cell-label">Progressions</span>
+              <span class="ah-cell-val">{{ weekProgressions }}</span>
+            </div>
+            <div class="ah-cell">
+              <span class="ah-cell-label">Avg Confidence</span>
+              <span class="ah-cell-val">{{ avgConfidence > 0 ? (avgConfidence | number:'1.1-1') + '%' : '--' }}</span>
+            </div>
+            <div class="ah-cell">
+              <span class="ah-cell-label">Avg Speed</span>
+              <span class="ah-cell-val">{{ formatTime(predTimeStats.avg) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card card-p chart-card">
+        <div class="card-title"><i class="fa-solid fa-chart-line"></i> Weekly Activity</div>
+        <div class="card-body">
+          <div class="chart-area" *ngIf="dailyCounts.length > 0">
+            <div class="chart-bar-wrap" *ngFor="let b of dailyCounts">
+              <div class="chart-bar" [style.height.%]="(b.count / getMaxDailyCount()) * 100"
+                   style="background:linear-gradient(180deg,var(--accent1),var(--accent2))"></div>
+              <div class="chart-count">{{ b.count }}</div>
+              <div class="chart-label">{{ getDayLabel(b.date) }}</div>
+            </div>
+          </div>
+          <div class="empty-state" *ngIf="dailyCounts.length === 0">
+            <p>No weekly data available</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pair 2: Age Distribution | Model Usage -->
+      <div class="card card-p chart-card">
+        <div class="card-title"><i class="fa-solid fa-bullseye"></i> Age Distribution</div>
+        <div class="card-body">
+          <ng-container *ngIf="ageDist.length > 0">
+            <div class="donut-wrap">
+              <svg viewBox="0 0 120 120" class="donut-svg">
+                <circle cx="60" cy="60" r="52" fill="none" stroke="var(--chart-track)" stroke-width="12" />
+                <circle *ngFor="let seg of ageDonutSegments"
+                        cx="60" cy="60" r="52" fill="none"
+                        [attr.stroke]="seg.color" stroke-width="12"
+                        [attr.stroke-dasharray]="(seg.pct * 3.267) + ' ' + (326.7 - seg.pct * 3.267)"
+                        [attr.stroke-dashoffset]="-(seg.offset * 3.267)" />
+              </svg>
+            </div>
+            <div class="age-dist-list">
+              <div class="age-dist-row" *ngFor="let d of ageDist">
+                <span class="adr-dot" [style.background]="d.color"></span>
+                <span class="adr-label">{{ d.label }}</span>
+                <div class="bar-track" style="flex:1;height:5px">
+                  <div class="bar-fill" [style.width.%]="d.pct" [style.background]="d.color"></div>
+                </div>
+                <span class="adr-val">{{ d.pct }}%</span>
+              </div>
+            </div>
+          </ng-container>
+          <div class="empty-state" *ngIf="ageDist.length === 0">
+            <p>No age data available yet</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card card-p chart-card">
+        <div class="card-title"><i class="fa-solid fa-microchip"></i> Model Usage</div>
+        <div class="card-body">
+          <ng-container *ngIf="detectorDist.length > 0 || modelDist.length > 0">
+            <div class="model-usage-grid">
+              <div class="model-section" *ngIf="detectorDist.length > 0">
+                <div class="model-section-label">Prediction Detectors</div>
+                <div class="dist-bar-list">
+                  <div class="dist-bar-item" *ngFor="let d of detectorDist">
+                    <div class="dist-bar-header">
+                      <span class="dist-bar-label">{{ d.detector }}</span>
+                      <span class="dist-bar-val">{{ d.count }} ({{ getPct(d.count, totalDetectorCount) }}%)</span>
+                    </div>
+                    <div class="bar-track">
+                      <div class="bar-fill" [style.width.%]="getPct(d.count, totalDetectorCount)" [style.background]="d.color"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="model-section" *ngIf="modelDist.length > 0">
+                <div class="model-section-label">Progression Models</div>
+                <div class="dist-bar-list">
+                  <div class="dist-bar-item" *ngFor="let m of modelDist">
+                    <div class="dist-bar-header">
+                      <span class="dist-bar-label">{{ m.model }}</span>
+                      <span class="dist-bar-val">{{ m.count }} ({{ getPct(m.count, totalModelCount) }}%)</span>
+                    </div>
+                    <div class="bar-track">
+                      <div class="bar-fill" [style.width.%]="getPct(m.count, totalModelCount)" [style.background]="m.color"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </ng-container>
+          <div class="empty-state" *ngIf="detectorDist.length === 0 && modelDist.length === 0">
+            <p>No model data available</p>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ─── BOTTOM: 3-left | 2-right ─── -->
+    <div class="analytics-cols">
+
+      <!-- Left column: Emotion, Gender, Processing Performance -->
+      <div class="analytics-col">
+
+        <div class="card card-p chart-card">
+          <div class="card-title"><i class="fa-solid fa-face-smile"></i> Emotion Distribution</div>
+          <div class="card-body">
+            <ng-container *ngIf="emotionDist.length > 0">
+              <div class="dist-bar-list">
+                <div class="dist-bar-item" *ngFor="let e of emotionDist">
+                  <div class="dist-bar-header">
+                    <span class="dist-bar-label">{{ e.emotion }}</span>
+                    <span class="dist-bar-val">{{ e.count }} ({{ getPct(e.count, totalEmotionCount) }}%)</span>
+                  </div>
+                  <div class="bar-track">
+                    <div class="bar-fill" [style.width.%]="getPct(e.count, totalEmotionCount)" [style.background]="e.color"></div>
+                  </div>
+                </div>
+              </div>
+            </ng-container>
+            <div class="empty-state" *ngIf="emotionDist.length === 0">
+              <p>No emotion data available</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card card-p chart-card">
+          <div class="card-title"><i class="fa-solid fa-venus-mars"></i> Gender Distribution</div>
+          <div class="card-body">
+            <ng-container *ngIf="genderDist.length > 0">
+              <div class="dist-bar-list">
+                <div class="dist-bar-item" *ngFor="let g of genderDist">
+                  <div class="dist-bar-header">
+                    <span class="dist-bar-label">{{ g.gender }}</span>
+                    <span class="dist-bar-val">{{ g.count }} ({{ getPct(g.count, totalGenderCount) }}%)</span>
+                  </div>
+                  <div class="bar-track">
+                    <div class="bar-fill" [style.width.%]="getPct(g.count, totalGenderCount)" [style.background]="g.color"></div>
+                  </div>
+                </div>
+              </div>
+            </ng-container>
+            <div class="empty-state" *ngIf="genderDist.length === 0">
+              <p>No gender data available</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card card-p chart-card">
+          <div class="card-title"><i class="fa-solid fa-gauge-high"></i> Processing Performance</div>
+          <div class="card-body">
+            <div class="perf-section">
+              <div class="perf-label">Predictions</div>
+              <div class="perf-stats">
+                <div class="perf-stat">
+                  <span class="perf-stat-label">Avg</span>
+                  <span class="perf-stat-value">{{ formatTime(predTimeStats.avg) }}</span>
+                </div>
+                <div class="perf-stat">
+                  <span class="perf-stat-label">Min</span>
+                  <span class="perf-stat-value perf-green">{{ formatTime(predTimeStats.min) }}</span>
+                </div>
+                <div class="perf-stat">
+                  <span class="perf-stat-label">Max</span>
+                  <span class="perf-stat-value perf-orange">{{ formatTime(predTimeStats.max) }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="perf-section">
+              <div class="perf-label">Progressions</div>
+              <div class="perf-stats">
+                <div class="perf-stat">
+                  <span class="perf-stat-label">Avg</span>
+                  <span class="perf-stat-value">{{ formatTime(progTimeStats.avg) }}</span>
+                </div>
+                <div class="perf-stat">
+                  <span class="perf-stat-label">Min</span>
+                  <span class="perf-stat-value perf-green">{{ formatTime(progTimeStats.min) }}</span>
+                </div>
+                <div class="perf-stat">
+                  <span class="perf-stat-label">Max</span>
+                  <span class="perf-stat-value perf-orange">{{ formatTime(progTimeStats.max) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right column: Confidence Distribution, Model Performance -->
+      <div class="analytics-col">
+
+        <div class="card card-p chart-card">
+          <div class="card-title"><i class="fa-solid fa-bullseye"></i> Confidence Distribution</div>
+          <div class="card-body">
+            <ng-container *ngIf="confidenceDist.length > 0">
+              <div class="dist-bar-list">
+                <div class="dist-bar-item" *ngFor="let c of confidenceDist">
+                  <div class="dist-bar-header">
+                    <span class="dist-bar-label">{{ c.range }}</span>
+                    <span class="dist-bar-val">{{ c.count }} ({{ getPct(c.count, totalConfCount) }}%)</span>
+                  </div>
+                  <div class="bar-track">
+                    <div class="bar-fill" [style.width.%]="getPct(c.count, totalConfCount)" [style.background]="c.color"></div>
+                  </div>
+                </div>
+              </div>
+            </ng-container>
+            <div class="empty-state" *ngIf="confidenceDist.length === 0">
+              <p>No confidence data available</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card card-p chart-card">
+          <div class="card-title"><i class="fa-solid fa-ranking-star"></i> Model Performance</div>
+          <div class="card-body">
+            <ng-container *ngIf="modelPerf.length > 0">
+              <div class="model-perf-list">
+                <div class="model-perf-card" *ngFor="let m of modelPerf">
+                  <div class="model-perf-header">
+                    <span class="model-perf-name" [style.border-left-color]="m.color">{{ m.model }}</span>
+                    <span class="model-perf-count">{{ m.count }} runs</span>
+                  </div>
+                  <div class="model-perf-metrics">
+                    <div class="model-perf-metric">
+                      <span class="model-perf-metric-label">Avg Time</span>
+                      <span class="model-perf-metric-value">{{ formatTime(m.avg_time_ms) }}</span>
+                    </div>
+                    <div class="model-perf-metric">
+                      <span class="model-perf-metric-label">Fastest</span>
+                      <span class="model-perf-metric-value perf-green">{{ formatTime(m.min_time_ms) }}</span>
+                    </div>
+                    <div class="model-perf-metric">
+                      <span class="model-perf-metric-label">Slowest</span>
+                      <span class="model-perf-metric-value perf-orange">{{ formatTime(m.max_time_ms) }}</span>
+                    </div>
+                    <div class="model-perf-metric">
+                      <span class="model-perf-metric-label">Avg Age Gap</span>
+                      <span class="model-perf-metric-value">{{ m.avg_age_gap | number:'1.0-0' }} yrs</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </ng-container>
+            <div class="empty-state" *ngIf="modelPerf.length === 0">
+              <p>No progression model data available</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
     </div>
 
-    <!-- Main 2-col -->
-    <div class="analytics-main">
-      <!-- Bar Chart -->
-      <div class="card card-p">
-        <div class="section-title card-title"><i class="fa-solid fa-chart-line"></i> Weekly Activity</div>
-        <div class="chart-area" *ngIf="dailyCounts.length > 0">
-          <div class="chart-bar-wrap" *ngFor="let b of dailyCounts">
-            <div class="chart-bar" [style.height.%]="(b.count / getMaxDailyCount()) * 100"
-                 style="background:linear-gradient(180deg,var(--accent1),var(--accent2))"></div>
-            <div class="chart-count">{{ b.count }}</div>
-            <div class="chart-label">{{ getDayLabel(b.date) }}</div>
-          </div>
-        </div>
-        <div class="empty-state" *ngIf="dailyCounts.length === 0">
-          <p>No weekly data available</p>
-        </div>
-      </div>
-
-      <!-- Age Distribution -->
-      <div class="card card-p">
-        <div class="section-title card-title"><i class="fa-solid fa-bullseye"></i> Age Distribution</div>
-        <ng-container *ngIf="ageDist.length > 0">
-          <div class="donut-wrap">
-            <svg viewBox="0 0 120 120" class="donut-svg">
-              <circle cx="60" cy="60" r="52" fill="none" stroke="var(--chart-track)" stroke-width="12" />
-              <circle *ngFor="let seg of ageDonutSegments"
-                      cx="60" cy="60" r="52" fill="none"
-                      [attr.stroke]="seg.color" stroke-width="12"
-                      [attr.stroke-dasharray]="(seg.pct * 3.267) + ' ' + (326.7 - seg.pct * 3.267)"
-                      [attr.stroke-dashoffset]="-(seg.offset * 3.267)" />
-            </svg>
-          </div>
-          <div class="age-dist-list">
-            <div class="age-dist-row" *ngFor="let d of ageDist">
-              <span class="adr-dot" [style.background]="d.color"></span>
-              <span class="adr-label">{{ d.label }}</span>
-              <div class="bar-track" style="flex:1;height:5px">
-                <div class="bar-fill" [style.width.%]="d.pct" [style.background]="d.color"></div>
-              </div>
-              <span class="adr-val">{{ d.pct }}%</span>
-            </div>
-          </div>
-        </ng-container>
-        <div class="empty-state" *ngIf="ageDist.length === 0">
-          <p>No age data available yet</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Row 3: Gender & Emotion -->
-    <div class="analytics-row">
-      <!-- Gender Distribution -->
-      <div class="card card-p">
-        <div class="section-title card-title"><i class="fa-solid fa-venus-mars"></i> Gender Distribution</div>
-        <ng-container *ngIf="genderDist.length > 0">
-          <div class="dist-bar-list">
-            <div class="dist-bar-item" *ngFor="let g of genderDist">
-              <div class="dist-bar-header">
-                <span class="dist-bar-label">{{ g.gender }}</span>
-                <span class="dist-bar-val">{{ g.count }} ({{ getPct(g.count, totalGenderCount) }}%)</span>
-              </div>
-              <div class="bar-track">
-                <div class="bar-fill" [style.width.%]="getPct(g.count, totalGenderCount)" [style.background]="g.color"></div>
-              </div>
-            </div>
-          </div>
-        </ng-container>
-        <div class="empty-state" *ngIf="genderDist.length === 0">
-          <p>No gender data available</p>
-        </div>
-      </div>
-
-      <!-- Emotion Distribution -->
-      <div class="card card-p">
-        <div class="section-title card-title"><i class="fa-solid fa-face-smile"></i> Emotion Distribution</div>
-        <ng-container *ngIf="emotionDist.length > 0">
-          <div class="dist-bar-list">
-            <div class="dist-bar-item" *ngFor="let e of emotionDist">
-              <div class="dist-bar-header">
-                <span class="dist-bar-label">{{ e.emotion }}</span>
-                <span class="dist-bar-val">{{ e.count }} ({{ getPct(e.count, totalEmotionCount) }}%)</span>
-              </div>
-              <div class="bar-track">
-                <div class="bar-fill" [style.width.%]="getPct(e.count, totalEmotionCount)" [style.background]="e.color"></div>
-              </div>
-            </div>
-          </div>
-        </ng-container>
-        <div class="empty-state" *ngIf="emotionDist.length === 0">
-          <p>No emotion data available</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Row 4: Confidence & Model Performance -->
-    <div class="analytics-row">
-      <!-- Confidence Distribution -->
-      <div class="card card-p">
-        <div class="section-title card-title"><i class="fa-solid fa-bullseye"></i> Confidence Distribution</div>
-        <ng-container *ngIf="confidenceDist.length > 0">
-          <div class="dist-bar-list">
-            <div class="dist-bar-item" *ngFor="let c of confidenceDist">
-              <div class="dist-bar-header">
-                <span class="dist-bar-label">{{ c.range }}</span>
-                <span class="dist-bar-val">{{ c.count }} ({{ getPct(c.count, totalConfCount) }}%)</span>
-              </div>
-              <div class="bar-track">
-                <div class="bar-fill" [style.width.%]="getPct(c.count, totalConfCount)" [style.background]="c.color"></div>
-              </div>
-            </div>
-          </div>
-        </ng-container>
-        <div class="empty-state" *ngIf="confidenceDist.length === 0">
-          <p>No confidence data available</p>
-        </div>
-      </div>
-
-      <!-- Model Performance -->
-      <div class="card card-p">
-        <div class="section-title card-title"><i class="fa-solid fa-ranking-star"></i> Model Performance</div>
-        <ng-container *ngIf="modelPerf.length > 0">
-          <div class="model-perf-list">
-            <div class="model-perf-card" *ngFor="let m of modelPerf">
-              <div class="model-perf-header">
-                <span class="model-perf-name" [style.border-left-color]="m.color">{{ m.model }}</span>
-                <span class="model-perf-count">{{ m.count }} runs</span>
-              </div>
-              <div class="model-perf-metrics">
-                <div class="model-perf-metric">
-                  <span class="model-perf-metric-label">Avg Time</span>
-                  <span class="model-perf-metric-value">{{ formatTime(m.avg_time_ms) }}</span>
-                </div>
-                <div class="model-perf-metric">
-                  <span class="model-perf-metric-label">Fastest</span>
-                  <span class="model-perf-metric-value perf-green">{{ formatTime(m.min_time_ms) }}</span>
-                </div>
-                <div class="model-perf-metric">
-                  <span class="model-perf-metric-label">Slowest</span>
-                  <span class="model-perf-metric-value perf-orange">{{ formatTime(m.max_time_ms) }}</span>
-                </div>
-                <div class="model-perf-metric">
-                  <span class="model-perf-metric-label">Avg Age Gap</span>
-                  <span class="model-perf-metric-value">{{ m.avg_age_gap | number:'1.0-0' }} yrs</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </ng-container>
-        <div class="empty-state" *ngIf="modelPerf.length === 0">
-          <p>No progression model data available</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Row 5: Model Usage & Processing Time -->
-    <div class="analytics-row">
-      <!-- Model Usage -->
-      <div class="card card-p">
-        <div class="section-title card-title"><i class="fa-solid fa-microchip"></i> Model Usage</div>
-        <ng-container *ngIf="detectorDist.length > 0 || modelDist.length > 0">
-          <div class="model-section" *ngIf="detectorDist.length > 0">
-            <div class="model-section-label">Prediction Detectors</div>
-            <div class="dist-bar-list">
-              <div class="dist-bar-item" *ngFor="let d of detectorDist">
-                <div class="dist-bar-header">
-                  <span class="dist-bar-label">{{ d.detector }}</span>
-                  <span class="dist-bar-val">{{ d.count }} ({{ getPct(d.count, totalDetectorCount) }}%)</span>
-                </div>
-                <div class="bar-track">
-                  <div class="bar-fill" [style.width.%]="getPct(d.count, totalDetectorCount)" [style.background]="d.color"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="model-section" *ngIf="modelDist.length > 0">
-            <div class="model-section-label">Progression Models</div>
-            <div class="dist-bar-list">
-              <div class="dist-bar-item" *ngFor="let m of modelDist">
-                <div class="dist-bar-header">
-                  <span class="dist-bar-label">{{ m.model }}</span>
-                  <span class="dist-bar-val">{{ m.count }} ({{ getPct(m.count, totalModelCount) }}%)</span>
-                </div>
-                <div class="bar-track">
-                  <div class="bar-fill" [style.width.%]="getPct(m.count, totalModelCount)" [style.background]="m.color"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </ng-container>
-        <div class="empty-state" *ngIf="detectorDist.length === 0 && modelDist.length === 0">
-          <p>No model data available</p>
-        </div>
-      </div>
-
-      <!-- Processing Time Stats -->
-      <div class="card card-p">
-        <div class="section-title card-title"><i class="fa-solid fa-gauge-high"></i> Processing Performance</div>
-        <div class="perf-section">
-          <div class="perf-label">Predictions</div>
-          <div class="perf-stats">
-            <div class="perf-stat">
-              <span class="perf-stat-label">Avg</span>
-              <span class="perf-stat-value">{{ formatTime(predTimeStats.avg) }}</span>
-            </div>
-            <div class="perf-stat">
-              <span class="perf-stat-label">Min</span>
-              <span class="perf-stat-value perf-green">{{ formatTime(predTimeStats.min) }}</span>
-            </div>
-            <div class="perf-stat">
-              <span class="perf-stat-label">Max</span>
-              <span class="perf-stat-value perf-orange">{{ formatTime(predTimeStats.max) }}</span>
-            </div>
-          </div>
-        </div>
-        <div class="perf-section">
-          <div class="perf-label">Progressions</div>
-          <div class="perf-stats">
-            <div class="perf-stat">
-              <span class="perf-stat-label">Avg</span>
-              <span class="perf-stat-value">{{ formatTime(progTimeStats.avg) }}</span>
-            </div>
-            <div class="perf-stat">
-              <span class="perf-stat-label">Min</span>
-              <span class="perf-stat-value perf-green">{{ formatTime(progTimeStats.min) }}</span>
-            </div>
-            <div class="perf-stat">
-              <span class="perf-stat-label">Max</span>
-              <span class="perf-stat-value perf-orange">{{ formatTime(progTimeStats.max) }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
   </ng-container>
 </div>

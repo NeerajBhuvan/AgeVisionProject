@@ -11,7 +11,6 @@
   <div class="nav-sections">
     <!-- Main -->
     <div class="nav-section">
-      <div class="nav-section-label">Main</div>
       <a class="nav-item" routerLink="/dashboard" routerLinkActive="active" (click)="onNavClick()">
         <span class="nav-icon"><i class="fa-solid fa-house"></i></span>
         <span class="nav-label">Dashboard</span>
@@ -33,7 +32,6 @@
 
     <!-- Data -->
     <div class="nav-section">
-      <div class="nav-section-label">Data</div>
       <a class="nav-item" routerLink="/history" routerLinkActive="active" (click)="onNavClick()">
         <span class="nav-icon"><i class="fa-solid fa-folder-open"></i></span>
         <span class="nav-label">History</span>
@@ -46,7 +44,6 @@
 
     <!-- System -->
     <div class="nav-section">
-      <div class="nav-section-label">System</div>
       <a class="nav-item" routerLink="/settings" routerLinkActive="active" (click)="onNavClick()">
         <span class="nav-icon"><i class="fa-solid fa-gear"></i></span>
         <span class="nav-label">Settings</span>
@@ -55,7 +52,6 @@
 
     <!-- Admin (superusers only) -->
     <div class="nav-section" *ngIf="auth.getCurrentUser()?.is_admin">
-      <div class="nav-section-label">Admin</div>
       <a class="nav-item" routerLink="/admin" routerLinkActive="active" (click)="onNavClick()">
         <span class="nav-icon"><i class="fa-solid fa-shield-halved"></i></span>
         <span class="nav-label">Admin Panel</span>
@@ -69,7 +65,7 @@
       <div class="av-circle">{{ auth.getUserInitials() }}</div>
       <div class="av-info">
         <div class="av-name">{{ auth.getDisplayName() }}</div>
-        <div class="av-role">Researcher</div>
+        <div class="av-role">{{ auth.getRoleLabel() }}</div>
       </div>
     </div>
   </div>

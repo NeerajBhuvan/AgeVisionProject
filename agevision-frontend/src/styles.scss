@@ -28,8 +28,9 @@
   --text-secondary: #e0dfe6;
   --muted: rgba(255, 255, 255, 0.55);
   --surface: rgba(255, 255, 255, 0.04);
-  --topbar-bg: rgba(6, 6, 15, 0.72);
-  --sidebar-bg: rgba(10, 8, 28, 0.88);
+  /* Topbar + sidebar share ONE tone so the two bars match exactly. */
+  --topbar-bg: rgba(10, 8, 28, 0.62);
+  --sidebar-bg: rgba(10, 8, 28, 0.62);
   --card-hover-border: rgba(255, 255, 255, 0.2);
   --orb-opacity: 0.3;
   --noise-opacity: 0.03;
@@ -60,8 +61,10 @@
   --text-secondary: #3d3553;
   --muted: rgba(26, 22, 37, 0.48);
   --surface: rgba(255, 255, 255, 0.3);
-  --topbar-bg: rgba(255, 255, 255, 0.42);
-  --sidebar-bg: rgba(255, 255, 255, 0.38);
+  /* Topbar + sidebar share ONE frosted-white tone so the two bars match exactly
+     (crisp enough that the mobile sidebar isn't a dull grey over the overlay). */
+  --topbar-bg: rgba(255, 255, 255, 0.8);
+  --sidebar-bg: rgba(255, 255, 255, 0.8);
   --card-hover-border: rgba(255, 255, 255, 0.85);
   --orb-opacity: 0.22;
   --noise-opacity: 0.012;
@@ -122,7 +125,11 @@ h1, h2, h3, h4, h5, h6, p, span, div, label, a, li, td, th, button, input, selec
 /* ═══════════════════════════════════════════
    LAYOUT SHELL
 ═══════════════════════════════════════════ */
-#app { position: relative; z-index: 2; display: flex; min-height: 100vh; isolation: isolate; }
+/* No z-index / isolation here — those would create a stacking context that hides the
+   #bg orbs + .noise (which sit at z=0/1 below #app) inside #app's transparent areas,
+   producing a flat gray strip at the bottom on scroll. The sidebar overlay now lives
+   inside #app, so the original reason for isolation is gone. */
+#app { position: relative; display: flex; min-height: 100vh; }
 
 /* ═══════════════════════════════════════════
    GLASS CARD BASE
@@ -290,7 +297,10 @@ input::-webkit-credentials-auto-fill-button {
 /* ═══════════════════════════════════════════
    PAGE SYSTEM
 ═══════════════════════════════════════════ */
-.page { padding: 24px 28px 40px; animation: pageIn 0.2s ease; }
+/* min-height: 100% guarantees every page fills #main-content vertically — without it,
+   short pages leave empty space inside the scroll container and the body's --bg-base
+   shows through as a gray strip during scroll. */
+.page { padding: 24px 28px 40px; animation: pageIn 0.2s ease; min-height: 100%; box-sizing: border-box; }
 @keyframes pageIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -328,8 +338,17 @@ input::-webkit-credentials-auto-fill-button {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* #main layout */
-#main { flex: 1; min-width: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-#main-content { flex: 1; overflow-y: auto; contain: style; position: relative; }
+#main { flex: 1; min-width: 0; display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; }
+#main-content {
+  flex: 1;
+  overflow-y: auto;
+  contain: style;
+  position: relative;
+  /* Stops rubber-band overscroll from exposing the body bg as a gray strip on mobile,
+     and reserves room for the iOS home indicator / browser bottom bar. */
+  overscroll-behavior-y: contain;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
 
 /* ═══════════════════════════════════════════
    AUTH SCREENS
@@ -373,10 +392,26 @@ input::-webkit-credentials-auto-fill-button {
   display: flex; align-items: center; gap: 10px; cursor: pointer;
   font-size: 0.78rem; color: var(--muted);
 
+  /* Custom checkbox so it matches the glass UI and stays centered with the
+     label. Native checkboxes ignore background/border-radius without
+     appearance:none — which is why it rendered as a plain white square. */
   input[type="checkbox"] {
-    width: 18px; height: 18px; border-radius: 5px; border: 1px solid var(--glass-border);
-    background: var(--input-bg); flex-shrink: 0; cursor: pointer;
-    accent-color: var(--accent1); margin: 0;
+    appearance: none; -webkit-appearance: none;
+    width: 18px; height: 18px; min-width: 18px; border-radius: 5px;
+    border: 1px solid var(--glass-border); background: var(--input-bg);
+    flex-shrink: 0; cursor: pointer; margin: 0; position: relative;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  input[type="checkbox"]:checked {
+    background: var(--accent1); border-color: var(--accent1);
+  }
+  input[type="checkbox"]:checked::after {
+    content: ''; position: absolute; left: 5px; top: 2px;
+    width: 5px; height: 9px; border: solid #fff; border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+  input[type="checkbox"]:focus-visible {
+    outline: 2px solid rgba(127, 90, 240, 0.4); outline-offset: 1px;
   }
 }
 .auth-error.global { font-size: 0.72rem; color: var(--accent4); margin-top: 5px; display: none; }
@@ -489,30 +524,6 @@ input::-webkit-credentials-auto-fill-button {
 .sir-label { color: var(--muted); }
 .sir-value { font-weight: 600; font-family: "Space Mono", monospace; font-size: 0.78rem; color: var(--text); }
 
-/* ═══════════════════════════════════════════
-   MOBILE BOTTOM NAV
-═══════════════════════════════════════════ */
-#bottom-nav {
-  display: none;
-  position: fixed; bottom: 0; left: 0; right: 0; z-index: 900;
-  height: var(--mob-nav-h, 64px);
-  background: var(--glass-bg); backdrop-filter: blur(24px) saturate(1.4);
-  -webkit-backdrop-filter: blur(24px) saturate(1.4);
-  border-top: 1px solid var(--glass-border);
-  justify-content: space-around; align-items: center;
-}
-.bnav-item {
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
-  padding: 6px 10px; border-radius: 10px; text-decoration: none;
-  color: var(--muted); font-size: 0.68rem; font-weight: 500;
-  transition: color 0.25s, background 0.25s;
-}
-.bnav-item.active { color: var(--accent1); background: rgba(127, 90, 240, 0.1);
-  .bnav-label { color: var(--accent1); }
-}
-.bnav-item:hover { color: var(--text); }
-.bnav-icon { font-size: 1.2rem; }
-.bnav-label { letter-spacing: 0.01em; }
 
 /* ═══════════════════════════════════════════
    RESPONSIVE BREAKPOINTS
@@ -521,15 +532,11 @@ input::-webkit-credentials-auto-fill-button {
   .dash-main-grid, .analytics-main, .pred-grid, .prog-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 768px) {
-  app-sidebar { display: none; width: 0; min-width: 0; }
-  #sidebar { transform: translateX(-100%); width: 236px !important; transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important; }
-  #sidebar:hover { width: 236px !important; }
-  #sidebar.open { transform: translateX(0); }
   #sidebar-overlay.show { display: block; }
   #main { margin-left: 0 !important; width: 100% !important; }
-  #topbar { padding: 0 14px; }
+  #topbar { padding: 0 12px; }
   .search-box { display: none; }
-  .page { padding: 16px 16px 100px; }
+  .page { padding: 16px 16px 24px; }
   .dash-kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
   .dash-kpi-grid .card-p { padding: 14px; }
   .dash-kpi-grid .stat-card { gap: 10px; }
@@ -593,12 +600,6 @@ input::-webkit-credentials-auto-fill-button {
   .hl-actions { gap: 4px; }
   .hl-btn { width: 28px; height: 28px; font-size: 0.7rem; }
   .target-grid { grid-template-columns: repeat(4, 1fr); }
-  #bottom-nav { display: flex; }
-  /* 6 items now (Home / Predict / Batch / Progress / History / Analytics) —
-     tighten per-item padding so the row stays comfortable on ≤ 400 px screens. */
-  #bottom-nav .bnav-item { padding: 6px 6px; }
-  #bottom-nav .bnav-icon { font-size: 1.1rem; }
-  #bottom-nav .bnav-label { font-size: 0.62rem; }
   .compare-grid { grid-template-columns: 1fr auto 1fr; }
   .topbar-title { font-size: 0.88rem; }
   /* .open expand rules handled in sidebar component SCSS */
@@ -630,7 +631,21 @@ input::-webkit-credentials-auto-fill-button {
   .toggle-label { font-size: 0.75rem; }
   .conf-bar { margin-bottom: 10px; }
   .conf-row { font-size: 0.7rem; }
-  .history-toolbar { gap: 6px; margin-bottom: 12px; }
+  /* Toolbar: filter tabs + search each take a full row; the view-toggle and
+     sort share the last row 50/50 so everything lines up evenly. */
+  .history-toolbar { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .history-toolbar .filter-tabs { flex: 1 1 100%; }
+  .history-toolbar .search-box { flex: 1 1 100%; width: auto; }
+  .history-toolbar .btn-sm { flex: 1 1 0; width: auto; justify-content: center; }
+  .history-toolbar .form-select { flex: 1 1 0; width: auto !important; min-width: 0; }
+  /* List rows: ellipsis the title/meta, drop the redundant type chip, and push
+     age + delete to the right so the row stays a single clean line. */
+  .hl-item { flex-wrap: nowrap !important; }
+  .hl-body { flex: 1; min-width: 0; }
+  .hl-title, .hl-meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hl-item .chip { display: none; }
+  .hl-age { margin-left: auto; flex-shrink: 0; }
+  .hl-conf, .hl-actions { flex-shrink: 0; }
   .filter-tabs { padding: 3px; border-radius: 9px; }
   .ftab { padding: 5px 10px; font-size: 0.68rem; border-radius: 7px; }
   .history-toolbar .btn-sm { padding: 5px 8px; font-size: 0.7rem; }
@@ -673,6 +688,14 @@ input::-webkit-credentials-auto-fill-button {
   .age-range-row { grid-template-columns: repeat(3, 1fr); }
   .section-title { font-size: 1.1rem; }
   .rbn { font-size: 4.5rem; }
+
+  /* ── Mobile alignment polish: predict / progress / admin / batch / dropdown ──
+     !important wins over the components' view-encapsulated rules. */
+  .avatar-dropdown { width: min(240px, calc(100vw - 24px)); }
+  .sample-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+  .gan-item { padding: 10px 12px !important; gap: 8px !important; }
+  .users-table th, .users-table td { padding: 6px 8px !important; font-size: 0.66rem !important; }
+  .results-kpis { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
 }
 @media (max-width: 360px) {
   .analytics-top .stat-body h3 { font-size: 1rem; }
@@ -704,7 +727,20 @@ input::-webkit-credentials-auto-fill-button {
   -webkit-backdrop-filter: blur(48px) saturate(1.6);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), inset -1px 0 0 rgba(255, 255, 255, 0.3), 4px 0 24px rgba(100, 80, 160, 0.04);
 }
-[data-theme="light"] .nav-item:hover { background: rgba(0, 0, 0, 0.04); }
+/* Mobile sidebar uses its own background (::before is hidden under 768px);
+   bump the light-theme blur to match the desktop tuning. */
+@media (max-width: 768px) {
+  /* Mobile sidebar uses the SAME tone + blur as the topbar so they match. */
+  [data-theme="light"] #sidebar {
+    background: var(--sidebar-bg);
+    backdrop-filter: blur(48px) saturate(1.6);
+    -webkit-backdrop-filter: blur(48px) saturate(1.6);
+    box-shadow: 4px 0 28px rgba(100, 80, 160, 0.18),
+                inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  }
+}
+[data-theme="light"] .nav-item { color: rgba(26, 22, 37, 0.66); }
+[data-theme="light"] .nav-item:hover { background: rgba(0, 0, 0, 0.04); color: var(--text); }
 [data-theme="light"] .nav-item.active {
   background: rgba(127, 90, 240, 0.1); border-color: rgba(127, 90, 240, 0.2);
   box-shadow: 0 0 12px rgba(127, 90, 240, 0.06);
@@ -808,12 +844,6 @@ input::-webkit-credentials-auto-fill-button {
 [data-theme="light"] .perf-table tr:hover td { background: rgba(255, 255, 255, 0.35); }
 [data-theme="light"] .timeline::before { background: rgba(0, 0, 0, 0.06); }
 [data-theme="light"] .tl-item::before { background: rgba(127, 90, 240, 0.5); box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.6); }
-[data-theme="light"] #bottom-nav {
-  background: rgba(255, 255, 255, 0.4); backdrop-filter: blur(48px) saturate(1.6);
-  -webkit-backdrop-filter: blur(48px) saturate(1.6);
-  border-top: 1px solid rgba(255, 255, 255, 0.65);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 -2px 16px rgba(100, 80, 160, 0.04);
-}
 [data-theme="light"] .bnav-item.active { background: rgba(127, 90, 240, 0.08); }
 [data-theme="light"] .hist-card:hover { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 4px 20px rgba(100, 80, 160, 0.1); }
 [data-theme="light"] .hl-item { border-bottom-color: rgba(0, 0, 0, 0.05); }
@@ -854,19 +884,17 @@ input::-webkit-credentials-auto-fill-button {
 }
 
 /* Nav icon styles */
-.nav-icon i, .bnav-icon i, .dd-icon i, .sb-icon i {
+.nav-icon i, .dd-icon i, .sb-icon i {
   font-size: 1em;
   transition: transform 0.3s ease, color 0.3s ease;
 }
 
 /* Hover animations for nav items */
 .nav-item:hover .nav-icon i { transform: scale(1.2); }
-.bnav-item:hover .bnav-icon i { transform: scale(1.15) translateY(-1px); }
 .dd-item:hover .dd-icon i { transform: scale(1.15); }
 
 /* Active nav icon pulse */
-.nav-item.active .nav-icon i,
-.bnav-item.active .bnav-icon i {
+.nav-item.active .nav-icon i {
   animation: iconPulse 2s ease-in-out infinite;
 }
 
@@ -948,10 +976,8 @@ input::-webkit-credentials-auto-fill-button {
 
 /* ── Dark theme icon colors ── */
 [data-theme="dark"] {
-  .nav-icon i, .bnav-icon i { color: var(--muted); }
-  .nav-item.active .nav-icon i,
-  .bnav-item.active .bnav-icon i { color: var(--accent1); }
-  .bnav-item.active .bnav-label { color: var(--accent1); }
+  .nav-icon i { color: var(--muted); }
+  .nav-item.active .nav-icon i { color: var(--accent1); }
   .dd-icon i { color: var(--text-secondary); }
   .stat-icon i { color: var(--text); }
   .drop-icon i { color: var(--accent1); }
@@ -962,10 +988,8 @@ input::-webkit-credentials-auto-fill-button {
 
 /* ── Light theme icon colors ── */
 [data-theme="light"] {
-  .nav-icon i, .bnav-icon i { color: rgba(0,0,0,0.5); }
-  .nav-item.active .nav-icon i,
-  .bnav-item.active .bnav-icon i { color: var(--accent1); }
-  .bnav-item.active .bnav-label { color: var(--accent1); }
+  .nav-icon i { color: rgba(0,0,0,0.62); }
+  .nav-item.active .nav-icon i { color: var(--accent1); }
   .dd-icon i { color: rgba(0,0,0,0.65); }
   .stat-icon i { color: rgba(0,0,0,0.75); }
   .drop-icon i { color: var(--accent1); }

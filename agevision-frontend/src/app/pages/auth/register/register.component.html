@@ -73,7 +73,7 @@
                  formControlName="password" placeholder="Min 8 characters" autocomplete="new-password" />
           <button type="button" class="password-toggle" (click)="togglePasswordVisibility()" tabindex="-1"
                   [title]="showPassword ? 'Hide password' : 'Show password'">
-            <i [class]="showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+            <i [class]="showPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'"></i>
           </button>
         </div>
         @if (f['password'].touched && f['password'].errors) {
@@ -102,7 +102,7 @@
                  formControlName="confirmPassword" placeholder="Re-enter password" autocomplete="new-password" />
           <button type="button" class="password-toggle" (click)="toggleConfirmPasswordVisibility()" tabindex="-1"
                   [title]="showConfirmPassword ? 'Hide password' : 'Show password'">
-            <i [class]="showConfirmPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+            <i [class]="showConfirmPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'"></i>
           </button>
         </div>
         @if (f['confirmPassword'].touched && f['confirmPassword'].errors) {
@@ -116,7 +116,7 @@
       <!-- Terms -->
       <label class="auth-checkbox" style="margin-bottom: 6px;">
         <input type="checkbox" formControlName="terms" />
-        <span>I agree to the <a class="auth-link" href="javascript:void(0)">Terms &amp; Privacy</a></span>
+        <span>I agree to the <a class="auth-link" (click)="openTerms(); $event.preventDefault(); $event.stopPropagation()">Terms &amp; Privacy</a></span>
       </label>
       @if (f['terms'].touched && f['terms'].errors) {
         <span class="auth-field-error" style="margin-bottom: 12px;">You must accept the terms</span>
@@ -136,5 +136,25 @@
     <p class="auth-footer">
       Already have an account? <a routerLink="/login" class="auth-link">Sign In</a>
     </p>
+  </div>
+
+  <!-- Terms & Privacy Modal -->
+  <div class="modal-overlay" [class.open]="showTerms" (click)="closeTerms()">
+    <div class="modal-card card terms-modal" (click)="$event.stopPropagation()">
+      <button type="button" class="terms-close" (click)="closeTerms()" aria-label="Close">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <div class="modal-title">Terms &amp; Privacy</div>
+      <div class="terms-body">
+        <p>AgeVision AI is an <strong>open-source</strong> project provided for research and educational use, free of charge — there are no paid plans.</p>
+        <p><strong>Use of service.</strong> Use the app to analyse images you own or are authorised to use. Do not upload images of other people without their consent.</p>
+        <p><strong>Privacy.</strong> Your uploaded images and results are stored only to power your own History and Analytics, and are visible only to your account. You can delete them anytime from the History page.</p>
+        <p><strong>No warranty.</strong> Age, gender and emotion predictions are statistical estimates and may be inaccurate. The software is provided “as is”, without warranty of any kind.</p>
+        <p>By continuing you acknowledge and agree to these terms.</p>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-primary btn-full" (click)="acceptTerms()">I Agree</button>
+      </div>
+    </div>
   </div>
 </div>

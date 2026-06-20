@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ApiService } from '../../services/api.service';
 import { NotificationService } from '../../services/notification.service';
 import { FileTransferService } from '../../services/file-transfer.service';
+import { SettingsService } from '../../services/settings.service';
 import { PredictionResponse, FacePrediction } from '../../models/prediction';
 
 @Component({
@@ -80,10 +81,16 @@ export class PredictComponent implements OnInit, OnDestroy {
     private api: ApiService,
     private cdr: ChangeDetectorRef,
     private notif: NotificationService,
-    private fileTransfer: FileTransferService
+    private fileTransfer: FileTransferService,
+    private settingsService: SettingsService
   ) {}
 
+  /** Hide confidence figures when the user turned them off in Settings. */
+  get showConfidence(): boolean { return this.settingsService.showConfidence; }
+
   ngOnInit(): void {
+    // Trigger the one-time fetch; showConfidence getter reads the live value.
+    this.settingsService.ensureLoaded();
     const pending = this.fileTransfer.consumePendingFile();
     if (pending) this.handleFile(pending);
   }
@@ -155,7 +162,6 @@ export class PredictComponent implements OnInit, OnDestroy {
 
     const formData = new FormData();
     formData.append('image', this.selectedFile, this.selectedFile.name);
-    formData.append('detector_mode', 'insightface');
 
     this.api.predictAge(formData).subscribe({
       next: (res: PredictionResponse) => {

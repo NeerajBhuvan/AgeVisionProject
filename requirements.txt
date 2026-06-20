@@ -18,8 +18,8 @@ click-repl==0.3.0
 colorama==0.4.6
 deepface==0.0.98
 dlib>=19.24.0
-insightface>=0.7.3
-onnxruntime>=1.16.0
+# insightface + onnxruntime removed — the InsightFace fallback was dropped;
+# age prediction is now MiVOLO-only and runs locally (see age_predictor.py).
 Django==5.2
 django-cors-headers==4.9.0
 djangorestframework==3.16.1
@@ -36,6 +36,7 @@ gdown==5.2.1
 google-pasta==0.2.0
 grpcio==1.78.1
 gunicorn==23.0.0
+whitenoise==6.7.0
 h5py==3.14.0
 idna==3.11
 importlib_metadata==8.7.1
@@ -70,7 +71,7 @@ transformers>=4.51.0
 diffusers>=0.25.0
 omegaconf>=2.3.0
 accelerate>=1.8.1
-ultralytics>=8.0.0
+ultralytics>=8.0.0   # YOLOv8 face/person detector for local MiVOLO prediction
 huggingface_hub>=0.20.0
 Pygments==2.19.2
 PyJWT==2.11.0

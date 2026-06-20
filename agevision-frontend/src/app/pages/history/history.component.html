@@ -80,7 +80,7 @@
         </div>
         <span class="chip" [ngClass]="item.chipClass">{{ item.type }}</span>
         <div class="hl-age">{{ item.age }}</div>
-        <div class="hl-conf" *ngIf="item.confidence !== null">
+        <div class="hl-conf" *ngIf="item.confidence !== null && showConfidence">
           <span class="conf-val">{{ item.confidence | number:'1.0-0' }}%</span>
         </div>
         <div class="hl-actions">

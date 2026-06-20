@@ -28,17 +28,13 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         return throwError(() => error);
       }
 
-      // Access token expired / invalid — try to refresh and retry once.
-      const refresh = authService.getRefreshToken();
-      if (!refresh) {
-        authService.logout();
-        return throwError(() => error);
-      }
-
-      return authService.refreshToken().pipe(
-        switchMap(({ access }) => next(attachToken(req, access))),
+      // Access token expired / invalid — refresh (single-flight: concurrent
+      // 401s share one refresh request) and replay the original request.
+      return authService.refreshAccessToken().pipe(
+        switchMap((access) => next(attachToken(req, access))),
         catchError(refreshErr => {
-          // Refresh token also rejected — session is unrecoverable.
+          // Refresh failed (no/expired/blacklisted refresh token) — session is
+          // unrecoverable, so log the user out cleanly.
           authService.logout();
           return throwError(() => refreshErr);
         })

@@ -5,15 +5,22 @@
 }
 
 #sidebar-overlay {
-  display: none;
   position: fixed;
   inset: 0;
   z-index: 29;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(2px);
-  transition: opacity 0.3s;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
 
   &.show {
-    display: block;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  @media (max-width: 768px) {
+    top: 56px;
   }
 }

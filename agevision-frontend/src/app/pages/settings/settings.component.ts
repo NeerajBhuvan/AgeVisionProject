@@ -1,11 +1,13 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { ApiService } from '../../services/api.service';
 import { ThemeService } from '../../services/theme.service';
 import { TimezoneService } from '../../services/timezone.service';
+import { SettingsService } from '../../services/settings.service';
 import { UserSettings } from '../../models/user-settings';
 
 @Component({
@@ -14,8 +16,9 @@ import { UserSettings } from '../../models/user-settings';
   templateUrl: './settings.component.html',
   styleUrl: './settings.component.scss'
 })
-export class SettingsComponent implements OnInit {
+export class SettingsComponent implements OnInit, OnDestroy {
   activeSection = 'profile';
+  private settingsSub?: Subscription;
 
   sections = [
     { id: 'profile', label: 'Profile', icon: 'fa-solid fa-user' },
@@ -33,7 +36,7 @@ export class SettingsComponent implements OnInit {
   // Preferences
   settings: UserSettings = {
     theme: 'dark',
-    default_model: 'DeepFace v3',
+    default_model: 'sam',
     notifications_enabled: true,
     auto_detect_faces: true,
     save_to_history: true,
@@ -61,6 +64,7 @@ export class SettingsComponent implements OnInit {
     private api: ApiService,
     private themeService: ThemeService,
     private timezoneService: TimezoneService,
+    private settingsService: SettingsService,
     private route: ActivatedRoute
   ) {}
 
@@ -77,7 +81,18 @@ export class SettingsComponent implements OnInit {
   setSection(id: string): void {
     this.activeSection = id;
     const el = document.getElementById('settings-' + id);
-    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const container = document.getElementById('main-content');
+    if (el && container) {
+      // Scroll ONLY the main-content scroll area. el.scrollIntoView() bubbles to
+      // every scrollable ancestor and, on mobile, shifts the whole app shell so
+      // the topbar disappears. Scrolling the container directly avoids that.
+      const top = el.getBoundingClientRect().top
+                - container.getBoundingClientRect().top
+                + container.scrollTop - 8;
+      container.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    } else {
+      el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   }
 
   // -- Profile --
@@ -111,15 +126,18 @@ export class SettingsComponent implements OnInit {
     });
   }
 
+  ngOnDestroy(): void {
+    this.settingsSub?.unsubscribe();
+  }
+
   // -- Preferences --
   private loadSettings(): void {
-    this.api.getSettings().subscribe({
-      next: (data: UserSettings) => {
+    // Subscribe to the LIVE settings stream so re-entering this page always
+    // reflects the current values (including changes saved earlier).
+    this.settingsSub = this.settingsService.ensureLoaded().subscribe({
+      next: (data) => {
         this.settings = { ...this.settings, ...data };
-        // Sync timezone to the service
-        if (data.timezone) {
-          this.timezoneService.timezone = data.timezone;
-        }
+        if (data.timezone) this.timezoneService.timezone = data.timezone;
       },
       error: () => {}
     });
@@ -138,10 +156,6 @@ export class SettingsComponent implements OnInit {
     this.savePreferences();
   }
 
-  onLanguageChange(): void {
-    this.savePreferences();
-  }
-
   onTimezoneChange(): void {
     this.timezoneService.timezone = this.settings.timezone;
     this.savePreferences();
@@ -150,19 +164,16 @@ export class SettingsComponent implements OnInit {
   private savePreferences(): void {
     this.prefSaving = true;
     this.prefMsg = '';
-    const payload = {
+    // SettingsService persists + applies the change app-wide (notifications,
+    // timezone, confidence, default model) so every toggle has real effect.
+    this.settingsService.save({
       theme: this.settings.theme,
       default_model: this.settings.default_model,
       notifications_enabled: this.settings.notifications_enabled,
-      auto_detect_faces: this.settings.auto_detect_faces,
       save_to_history: this.settings.save_to_history,
-      high_accuracy_mode: this.settings.high_accuracy_mode,
       show_confidence: this.settings.show_confidence,
-      language: this.settings.language,
       timezone: this.settings.timezone
-    };
-
-    this.api.updateSettings(payload).subscribe({
+    }).subscribe({
       next: () => {
         this.prefMsg = 'Preferences saved';
         this.prefSaving = false;

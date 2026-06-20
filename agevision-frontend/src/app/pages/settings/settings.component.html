@@ -49,40 +49,25 @@
           <span class="ss-icon"><i class="fa-solid fa-palette"></i></span> Preferences
         </div>
         <div class="toggle-row">
-          <span class="toggle-label">Auto-detect faces</span>
-          <div class="tgl" [class.on]="settings.auto_detect_faces" (click)="togglePref('auto_detect_faces')"></div>
-        </div>
-        <div class="toggle-row">
           <span class="toggle-label">Save results to history</span>
           <div class="tgl" [class.on]="settings.save_to_history" (click)="togglePref('save_to_history')"></div>
-        </div>
-        <div class="toggle-row">
-          <span class="toggle-label">High accuracy mode</span>
-          <div class="tgl" [class.on]="settings.high_accuracy_mode" (click)="togglePref('high_accuracy_mode')"></div>
         </div>
         <div class="toggle-row">
           <span class="toggle-label">Show confidence scores</span>
           <div class="tgl" [class.on]="settings.show_confidence" (click)="togglePref('show_confidence')"></div>
         </div>
         <div class="toggle-row">
-          <span class="toggle-label">Email notifications</span>
+          <span class="toggle-label">In-app notifications</span>
           <div class="tgl" [class.on]="settings.notifications_enabled" (click)="togglePref('notifications_enabled')"></div>
         </div>
         <div class="form-group" style="margin-top:14px">
-          <label class="form-label">Default Model</label>
+          <label class="form-label">Default aging model</label>
           <select class="form-select" [(ngModel)]="settings.default_model" (ngModelChange)="onModelChange()">
-            <option>DeepFace v3</option>
-            <option>ArcFace</option>
-            <option>VGG-Face</option>
+            <option value="sam">SAM-GAN</option>
+            <option value="fast_aging">Fast-AgingGAN</option>
+            <option value="diffusion">FADING (Diffusion)</option>
           </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Language</label>
-          <select class="form-select" [(ngModel)]="settings.language" (ngModelChange)="onLanguageChange()">
-            <option>English</option>
-            <option>Spanish</option>
-            <option>French</option>
-          </select>
+          <div class="tz-hint">Pre-selected on the Progression page.</div>
         </div>
         <div class="form-group">
           <label class="form-label"><i class="fa-solid fa-clock" style="margin-right:4px"></i> Timezone</label>
@@ -136,7 +121,7 @@
         </div>
         <div class="settings-info-row">
           <span class="sir-label">Build</span>
-          <span class="sir-value">2026.03</span>
+          <span class="sir-value">2026.06</span>
         </div>
         <div class="settings-info-row">
           <span class="sir-label">Framework</span>
@@ -148,7 +133,15 @@
         </div>
         <div class="settings-info-row">
           <span class="sir-label">ML Engine</span>
-          <span class="sir-value">DeepFace + PyTorch</span>
+          <span class="sir-value">MiVOLO v2 + YOLOv8 (PyTorch)</span>
+        </div>
+        <div class="settings-info-row">
+          <span class="sir-label">Age Progression</span>
+          <span class="sir-value">SAM · Fast-Aging · FADING</span>
+        </div>
+        <div class="settings-info-row">
+          <span class="sir-label">License</span>
+          <span class="sir-value">Open Source</span>
         </div>
         <div style="margin-top:14px;font-size:0.72rem;color:var(--muted);line-height:1.6">
           AgeVision AI — Advanced age prediction and progression system.

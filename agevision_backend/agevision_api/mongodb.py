@@ -46,12 +46,16 @@ class MongoDB:
     def get_client(cls):
         if cls._client is None:
             config = settings.MONGODB_CONFIG
-            cls._client = MongoClient(
-                host=config['HOST'],
-                port=config['PORT'],
-                serverSelectionTimeoutMS=2000,
-                connectTimeoutMS=2000,
-            )
+            uri = config.get('URI', '')
+            if uri:
+                cls._client = MongoClient(uri, serverSelectionTimeoutMS=5000)
+            else:
+                cls._client = MongoClient(
+                    host=config['HOST'],
+                    port=config['PORT'],
+                    serverSelectionTimeoutMS=2000,
+                    connectTimeoutMS=2000,
+                )
         return cls._client
 
     @classmethod
@@ -934,13 +938,13 @@ class MongoUserSettingsManager:
 
     DEFAULTS = {
         'theme': 'dark',
-        'default_model': 'DeepFace v3',
+        'default_model': 'sam',          # default aging model (sam|fast_aging|diffusion)
         'notifications_enabled': True,
-        'auto_detect_faces': True,
+        'auto_detect_faces': True,       # legacy — retained for back-compat
         'save_to_history': True,
-        'high_accuracy_mode': False,
+        'high_accuracy_mode': False,     # legacy — retained for back-compat
         'show_confidence': True,
-        'language': 'English',
+        'language': 'English',           # legacy — retained for back-compat
         'timezone': 'Asia/Kolkata',
     }
 
@@ -996,7 +1000,7 @@ class MongoUserSettingsManager:
             'id': str(doc['_id']),
             'user_id': doc.get('user_id'),
             'theme': doc.get('theme', 'dark'),
-            'default_model': doc.get('default_model', 'DeepFace v3'),
+            'default_model': doc.get('default_model', 'sam'),
             'notifications_enabled': doc.get('notifications_enabled', True),
             'auto_detect_faces': doc.get('auto_detect_faces', True),
             'save_to_history': doc.get('save_to_history', True),

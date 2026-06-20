@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 
 from .mongodb import MongoUserSettingsManager
+from . import storage
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -52,14 +53,10 @@ class PredictionSerializer(serializers.Serializer):
     created_at = serializers.CharField(read_only=True)
 
     def get_image_url(self, obj):
-        request = self.context.get('request')
-        image_path = obj.get('image_path', '')
-        if image_path and request:
-            # Build URL from relative media path
-            from django.conf import settings as django_settings
-            media_url = django_settings.MEDIA_URL
-            return request.build_absolute_uri(f'{media_url}{image_path}')
-        return None
+        return storage.media_url(
+            obj.get('image_path', ''),
+            request=self.context.get('request'),
+        )
 
 
 class ProgressionSerializer(serializers.Serializer):
@@ -80,22 +77,16 @@ class ProgressionSerializer(serializers.Serializer):
     created_at = serializers.CharField(read_only=True)
 
     def get_original_image_url(self, obj):
-        request = self.context.get('request')
-        image_path = obj.get('original_image_path', '')
-        if image_path and request:
-            from django.conf import settings as django_settings
-            media_url = django_settings.MEDIA_URL
-            return request.build_absolute_uri(f'{media_url}{image_path}')
-        return None
+        return storage.media_url(
+            obj.get('original_image_path', ''),
+            request=self.context.get('request'),
+        )
 
     def get_progressed_image_url(self, obj):
-        request = self.context.get('request')
-        image_path = obj.get('progressed_image_path', '')
-        if image_path and request:
-            from django.conf import settings as django_settings
-            media_url = django_settings.MEDIA_URL
-            return request.build_absolute_uri(f'{media_url}{image_path}')
-        return None
+        return storage.media_url(
+            obj.get('progressed_image_path', ''),
+            request=self.context.get('request'),
+        )
 
 
 class UserSettingsSerializer(serializers.Serializer):

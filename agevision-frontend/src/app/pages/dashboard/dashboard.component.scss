@@ -189,3 +189,7 @@
   .dash-kpi-grid { grid-template-columns: repeat(2, 1fr); }
   .quick-actions { grid-template-columns: repeat(2, 1fr); }
 }
+@media (max-width: 480px) {
+  /* Horizontal icon+label pills squish in 2 columns on a phone — stack them. */
+  .quick-actions { grid-template-columns: 1fr; gap: 8px; }
+}

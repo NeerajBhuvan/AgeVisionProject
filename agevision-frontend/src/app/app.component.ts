@@ -1,15 +1,17 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { RouterOutlet, Router, NavigationEnd, RouterLink, RouterLinkActive, ChildrenOutletContexts } from '@angular/router';
+import { RouterOutlet, Router, NavigationEnd, ChildrenOutletContexts } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { Subscription, filter } from 'rxjs';
+import { Subscription, filter, distinctUntilChanged } from 'rxjs';
 import { SidebarComponent } from './shared/sidebar/sidebar.component';
 import { TopbarComponent } from './shared/topbar/topbar.component';
 import { ThemeService } from './services/theme.service';
+import { AuthService } from './services/auth.service';
+import { SettingsService } from './services/settings.service';
 import { routeAnimations } from './route-animations';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, CommonModule, SidebarComponent, TopbarComponent],
+  imports: [RouterOutlet, CommonModule, SidebarComponent, TopbarComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
   animations: [routeAnimations]
@@ -24,8 +26,15 @@ export class AppComponent implements OnInit, OnDestroy {
   );
   sidebarOpen = false;
   private routeSub!: Subscription;
+  private authSub!: Subscription;
 
-  constructor(private router: Router, private themeService: ThemeService, private contexts: ChildrenOutletContexts) {}
+  constructor(
+    private router: Router,
+    private themeService: ThemeService,
+    private contexts: ChildrenOutletContexts,
+    private auth: AuthService,
+    private settings: SettingsService
+  ) {}
 
   getRouteAnimationData() {
     return this.contexts.getContext('primary')?.route?.snapshot?.data?.['animation'];
@@ -39,6 +48,13 @@ export class AppComponent implements OnInit, OnDestroy {
         this.isAuthPage = AppComponent.isAuthPath(url);
         if (this.isAuthPage) this.sidebarOpen = false;
       });
+
+    // Load user preferences whenever they become authenticated, so the
+    // notifications + confidence + default-model settings apply app-wide
+    // (and reload fresh for whoever just logged in).
+    this.authSub = this.auth.isAuthenticated$
+      .pipe(distinctUntilChanged())
+      .subscribe(isAuth => { if (isAuth) this.settings.reload(); });
   }
 
   private static isAuthPath(url: string): boolean {
@@ -55,5 +71,6 @@ export class AppComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.routeSub?.unsubscribe();
+    this.authSub?.unsubscribe();
   }
 }

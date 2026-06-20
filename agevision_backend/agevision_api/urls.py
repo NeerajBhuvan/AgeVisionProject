@@ -1,4 +1,5 @@
 from django.urls import path
+from django.http import JsonResponse
 from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (
     register_view,
@@ -26,7 +27,14 @@ from .views import (
     admin_system_health_view,
 )
 
+def health_view(request):
+    return JsonResponse({'status': 'ok'})
+
+
 urlpatterns = [
+    # Health check (no auth required)
+    path('health/', health_view, name='health'),
+
     # Auth
     path('auth/register/', register_view, name='register'),
     path('auth/login/', login_view, name='login'),

@@ -1,0 +1,26 @@
+<service>
+  <id>AgeVisionBackend</id>
+  <name>AgeVision Backend</name>
+  <description>AgeVision Django API served by waitress (serve.py). Runs as a Windows service so there is never a console window and it starts on boot.</description>
+
+  <executable>D:\AU\Project\agevision_env\Scripts\python.exe</executable>
+  <arguments>serve.py</arguments>
+  <workingdirectory>D:\AU\Project\AgeVisionProject\agevision_backend</workingdirectory>
+
+  <!-- Production toggles (secrets stay in agevision_backend/.env, loaded by Django) -->
+  <env name="DEBUG" value="False" />
+  <env name="ALLOWED_HOSTS" value="agevision.thinkblooms.in,localhost,127.0.0.1" />
+  <env name="CORS_ORIGINS" value="https://agevision.thinkblooms.in,http://localhost,http://127.0.0.1" />
+  <env name="CSRF_TRUSTED_ORIGINS" value="https://agevision.thinkblooms.in" />
+  <env name="BEHIND_PROXY" value="True" />
+  <env name="PYTHONUNBUFFERED" value="1" />
+  <!-- Reuse the existing model cache so weights are not re-downloaded under the
+       service account (LocalSystem). -->
+  <env name="HF_HOME" value="C:\Users\neera\.cache\huggingface" />
+
+  <onfailure action="restart" delay="5 sec" />
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>3</keepFiles>
+  </log>
+</service>

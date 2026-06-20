@@ -4,7 +4,6 @@ import queue
 import threading
 import time
 import uuid
-import shutil
 
 from django.conf import settings
 from django.http import StreamingHttpResponse
@@ -15,10 +14,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 
-from ..mongodb import MongoProgressionManager
+from ..mongodb import MongoProgressionManager, MongoUserSettingsManager
 from ..serializers import ProgressionSerializer
 from ..gan_progression import GANProgressionPipeline
 from ..age_predictor import predict_group_faces
+from .. import storage
 
 
 # Map frontend model IDs to display names
@@ -27,6 +27,14 @@ GAN_MODEL_NAMES = {
     'fast_aging': 'Fast-AgingGAN',
     'diffusion': 'FADING-Diffusion',
 }
+
+
+def _save_to_history(user_id) -> bool:
+    """Whether this user wants progressions persisted to their history."""
+    try:
+        return MongoUserSettingsManager.get_or_create(user_id).get('save_to_history', True)
+    except Exception:
+        return True
 
 
 @api_view(['POST'])
@@ -94,32 +102,21 @@ def progress_view(request):
         total_time = (time.time() - start_time) * 1000  # ms
         model_type = result.get('model_type', 'Unknown')
 
-        # -- Step 3: Save original image to originals dir --
-        originals_dir = os.path.join(settings.MEDIA_ROOT, 'originals')
-        os.makedirs(originals_dir, exist_ok=True)
+        # -- Step 3: Save original image into media storage --
         orig_save_name = f"{uuid.uuid4().hex}{ext}"
-        orig_save_path = os.path.join(originals_dir, orig_save_name)
-
-        image.seek(0)
-        with open(orig_save_path, 'wb+') as f:
-            for chunk in image.chunks():
-                f.write(chunk)
-
         original_relative_path = f"originals/{orig_save_name}"
+        image.seek(0)
+        storage.save_media(image, original_relative_path)
 
-        # Copy progressed image to progressions dir
-        progressions_dir = os.path.join(settings.MEDIA_ROOT, 'progressions')
-        os.makedirs(progressions_dir, exist_ok=True)
+        # Copy progressed image into media storage
         progressed_path = result['output_path']
         prog_ext = os.path.splitext(progressed_path)[1] or '.jpg'
         prog_save_name = f"{uuid.uuid4().hex}{prog_ext}"
-        prog_save_path = os.path.join(progressions_dir, prog_save_name)
-
-        shutil.copy2(progressed_path, prog_save_path)
         progressed_relative_path = f"progressions/{prog_save_name}"
+        storage.copy_to_media(progressed_path, progressed_relative_path)
 
-        # -- Step 4: Save the DB record in MongoDB --
-        record = MongoProgressionManager.create(
+        # -- Step 4: Save the DB record in MongoDB (only if user keeps history) --
+        record_fields = dict(
             user_id=request.user.id,
             original_image_path=original_relative_path,
             progressed_image_path=progressed_relative_path,
@@ -131,6 +128,10 @@ def progress_view(request):
             pipeline_steps=result['steps'],
             aging_insights=result['insights'],
         )
+        if _save_to_history(request.user.id):
+            record = MongoProgressionManager.create(**record_fields)
+        else:
+            record = {**record_fields, 'created_at': None}
 
         serializer = ProgressionSerializer(record, context={'request': request})
 
@@ -213,6 +214,15 @@ def progress_stream_view(request):
     event_queue = queue.Queue()
     user_id = request.user.id
 
+    # Capture request host info up-front so the background thread can build
+    # absolute media URLs without touching the request object (which is not
+    # thread-safe).
+    request_scheme = request.scheme
+    request_host = request.get_host()
+
+    def build_media_url(relative_path: str) -> str:
+        return f"{request_scheme}://{request_host}{settings.MEDIA_URL}{relative_path}"
+
     def step_callback(step_data):
         """Called by GANProgressionPipeline as each step starts/completes."""
         event_queue.put(('step', step_data))
@@ -252,23 +262,16 @@ def progress_stream_view(request):
             total_time = (time.time() - start_time) * 1000
             model_type = result.get('model_type', 'Unknown')
 
-            # Save images
-            originals_dir = os.path.join(settings.MEDIA_ROOT, 'originals')
-            os.makedirs(originals_dir, exist_ok=True)
+            # Save images into media storage
             orig_save_name = f"{uuid.uuid4().hex}{ext}"
-            orig_save_path = os.path.join(originals_dir, orig_save_name)
-            with open(orig_save_path, 'wb') as f:
-                f.write(image_bytes)
             original_relative_path = f"originals/{orig_save_name}"
+            storage.save_media(image_bytes, original_relative_path)
 
-            progressions_dir = os.path.join(settings.MEDIA_ROOT, 'progressions')
-            os.makedirs(progressions_dir, exist_ok=True)
             progressed_path = result['output_path']
             prog_ext = os.path.splitext(progressed_path)[1] or '.jpg'
             prog_save_name = f"{uuid.uuid4().hex}{prog_ext}"
-            prog_save_path = os.path.join(progressions_dir, prog_save_name)
-            shutil.copy2(progressed_path, prog_save_path)
             progressed_relative_path = f"progressions/{prog_save_name}"
+            storage.copy_to_media(progressed_path, progressed_relative_path)
 
             # Build all pipeline steps (age detection + pipeline steps)
             all_steps = [{
@@ -278,27 +281,28 @@ def progress_stream_view(request):
                 'time_ms': age_time,
             }] + result['steps']
 
-            # Save to MongoDB
-            record = MongoProgressionManager.create(
-                user_id=user_id,
-                original_image_path=original_relative_path,
-                progressed_image_path=progressed_relative_path,
-                current_age=current_age,
-                target_age=target_age,
-                model_used=model_type,
-                processing_time_ms=round(total_time, 2),
-                gender=gender,
-                pipeline_steps=all_steps,
-                aging_insights=result['insights'],
-            )
+            # Save to MongoDB (only if the user keeps history)
+            if _save_to_history(user_id):
+                record = MongoProgressionManager.create(
+                    user_id=user_id,
+                    original_image_path=original_relative_path,
+                    progressed_image_path=progressed_relative_path,
+                    current_age=current_age,
+                    target_age=target_age,
+                    model_used=model_type,
+                    processing_time_ms=round(total_time, 2),
+                    gender=gender,
+                    pipeline_steps=all_steps,
+                    aging_insights=result['insights'],
+                )
+            else:
+                record = {}
 
-            # Build image URLs
-            base_url = f"http://localhost:8000{settings.MEDIA_URL}"
             event_queue.put(('result', {
                 'progression': {
                     'id': str(record.get('_id', '')),
-                    'original_image_url': f"{base_url}{original_relative_path}",
-                    'progressed_image_url': f"{base_url}{progressed_relative_path}",
+                    'original_image_url': build_media_url(original_relative_path),
+                    'progressed_image_url': build_media_url(progressed_relative_path),
                     'current_age': current_age,
                     'target_age': target_age,
                     'model_used': model_type,

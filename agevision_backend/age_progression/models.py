@@ -34,13 +34,17 @@ class ProgressionDB:
     def _get_client(cls):
         if cls._client is None:
             cfg = settings.MONGODB_CONFIG
-            cls._client = MongoClient(
-                host=cfg.get('HOST', 'localhost'),
-                port=cfg.get('PORT', 27017),
-                serverSelectionTimeoutMS=2000,
-                connectTimeoutMS=2000,
-                socketTimeoutMS=2000,
-            )
+            uri = cfg.get('URI', '')
+            if uri:
+                cls._client = MongoClient(uri, serverSelectionTimeoutMS=5000)
+            else:
+                cls._client = MongoClient(
+                    host=cfg.get('HOST', 'localhost'),
+                    port=cfg.get('PORT', 27017),
+                    serverSelectionTimeoutMS=2000,
+                    connectTimeoutMS=2000,
+                    socketTimeoutMS=2000,
+                )
         return cls._client
 
     @classmethod

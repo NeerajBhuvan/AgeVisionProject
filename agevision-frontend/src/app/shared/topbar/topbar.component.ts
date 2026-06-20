@@ -4,7 +4,10 @@ import {
   OnDestroy,
   HostListener,
   ElementRef,
-  signal
+  signal,
+  Input,
+  Output,
+  EventEmitter
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, NavigationEnd } from '@angular/router';
@@ -47,6 +50,9 @@ interface PageMeta {
   ]
 })
 export class TopbarComponent implements OnInit, OnDestroy {
+  @Input() sidebarOpen = false;
+  @Output() hamburgerClick = new EventEmitter<void>();
+
   pageTitle = signal<PageMeta>({ title: 'Dashboard', subtitle: 'Overview' });
   avatarDropdownOpen = signal(false);
   notifPanelOpen = signal(false);

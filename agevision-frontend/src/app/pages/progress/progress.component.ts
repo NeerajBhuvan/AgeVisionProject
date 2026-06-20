@@ -6,6 +6,8 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
 import { NotificationService } from '../../services/notification.service';
 import { FileTransferService } from '../../services/file-transfer.service';
+import { SettingsService } from '../../services/settings.service';
+import { Subscription } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   PipelineStep,
@@ -64,6 +66,8 @@ export class ProgressComponent implements OnInit, OnDestroy {
     { id: 'diffusion', name: 'FADING', desc: 'Diffusion-based · Bidirectional · High-quality aging', icon: 'fa-solid fa-wand-sparkles' },
   ];
   selectedGan = 'sam';
+  private ganUserSelected = false;
+  private settingsSub?: Subscription;
 
   // SAM always uses the original (FFHQ) variant
   selectedSamVariant = 'ffhq';
@@ -90,15 +94,27 @@ export class ProgressComponent implements OnInit, OnDestroy {
     private cdr: ChangeDetectorRef,
     private notif: NotificationService,
     private fileTransfer: FileTransferService,
+    private settingsService: SettingsService,
     @Inject(DOCUMENT) private document: Document,
   ) {}
 
   ngOnInit(): void {
+    // Pre-select the user's default aging model from Settings — but never
+    // override a manual pick the user makes on this page.
+    this.settingsSub = this.settingsService.ensureLoaded().subscribe({
+      next: (s) => {
+        if (!this.ganUserSelected && s.default_model && this.gans.some(m => m.id === s.default_model)) {
+          this.selectedGan = s.default_model;
+        }
+      },
+      error: () => {}
+    });
     const pending = this.fileTransfer.consumePendingFile();
     if (pending) this.handleFile(pending);
   }
 
   ngOnDestroy(): void {
+    this.settingsSub?.unsubscribe();
     this.stopCamera();
     this.stopElapsedTimer();
   }
@@ -123,6 +139,7 @@ export class ProgressComponent implements OnInit, OnDestroy {
 
   selectGan(id: string): void {
     this.selectedGan = id;
+    this.ganUserSelected = true;
   }
 
 

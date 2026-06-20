@@ -258,7 +258,7 @@
               <span class="fli-age">Age {{ face.predicted_age }}</span>
               <span class="fli-meta">{{ face.gender }} &middot; {{ face.emotion }}</span>
             </div>
-            <div class="fli-conf">{{ (face.confidence * 100) | number:'1.0-0' }}%</div>
+            <div class="fli-conf" *ngIf="showConfidence">{{ (face.confidence * 100) | number:'1.0-0' }}%</div>
           </div>
         </div>
       </div>
@@ -285,7 +285,7 @@
       </div>
 
       <!-- Confidence Bars -->
-      <div class="card card-p" *ngIf="showResults">
+      <div class="card card-p" *ngIf="showResults && showConfidence">
         <div class="section-title" style="font-size:0.95rem;margin-bottom:14px"><i class="fa-solid fa-chart-pie"></i> Confidence</div>
         <div class="conf-bar" *ngFor="let bar of confBars">
           <div class="conf-row">

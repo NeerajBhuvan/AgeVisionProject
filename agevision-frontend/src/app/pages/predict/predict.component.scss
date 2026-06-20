@@ -398,16 +398,33 @@
   background: var(--surface);
   cursor: pointer;
   border: 2px solid transparent;
+  position: relative;
   transition: all 0.2s;
 
   &:hover {
-    border-color: rgba(127, 90, 240, 0.2);
+    border-color: rgba(127, 90, 240, 0.3);
+    background: rgba(127, 90, 240, 0.05);
   }
 
+  /* Selected face — make it unmistakably distinct from the rest. */
   &.active {
     border-color: var(--accent1);
-    background: rgba(127, 90, 240, 0.08);
+    background: linear-gradient(135deg, rgba(127, 90, 240, 0.28), rgba(127, 90, 240, 0.12));
+    box-shadow: 0 0 0 1px var(--accent1), 0 6px 18px rgba(127, 90, 240, 0.3);
+    transform: translateY(-1px);
   }
+
+  /* Accent bar on the left edge of the selected item. */
+  &.active::before {
+    content: '';
+    position: absolute;
+    left: -2px; top: 8px; bottom: 8px;
+    width: 4px;
+    border-radius: 0 4px 4px 0;
+    background: var(--accent1);
+  }
+
+  &.active .fli-age { color: var(--accent1); }
 }
 
 .fli-id {
@@ -417,6 +434,14 @@
   color: var(--accent1);
   display: flex; align-items: center; justify-content: center;
   font-size: 0.75rem; font-weight: 700; flex-shrink: 0;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+}
+
+/* Selected face gets a solid filled number badge so the active row pops. */
+.face-list-item.active .fli-id {
+  background: var(--accent1);
+  color: #fff;
+  box-shadow: 0 0 0 3px rgba(127, 90, 240, 0.25);
 }
 
 .fli-details {
@@ -672,4 +697,39 @@
   .pred-grid { grid-template-columns: 1fr; }
   .sample-grid { grid-template-columns: repeat(4, 1fr); }
   .group-sample-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 768px) {
+  .pred-grid { gap: 12px; }
+  .cam-feed { min-height: 260px; }
+  .cam-start-zone { min-height: 200px; }
+  .age-display { font-size: 3.5rem !important; }
+
+  /* Camera control buttons (Capture / Auto / Stop) overflowed the row on a
+     phone — let them wrap and share the width evenly so nothing spills out. */
+  .cam-controls { flex-wrap: wrap; gap: 8px; }
+  .cam-controls .btn {
+    flex: 1 1 auto;
+    min-width: 0;
+    justify-content: center;
+    white-space: nowrap;
+  }
+  /* Keep the mirrored video fully inside its rounded container. */
+  .cam-feed { max-width: 100%; }
+  .cam-feed video { width: 100%; height: auto; }
+}
+
+@media (max-width: 480px) {
+  .cam-controls .btn { padding: 9px 10px; font-size: 0.78rem; }
+  .cam-controls .btn i { margin-right: 5px; }
+  /* Camera-picker pills shouldn't push the card wider than the screen. */
+  .cam-selector-pills { width: 100%; }
+  .cam-selector-pills .mpill {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .cam-face-label { font-size: 0.62rem; padding: 1px 6px; top: -20px; }
 }

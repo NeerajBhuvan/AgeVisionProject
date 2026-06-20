@@ -26,6 +26,7 @@ export class RegisterComponent implements OnDestroy {
   errorMessage = '';
   showPassword = false;
   showConfirmPassword = false;
+  showTerms = false;
   passwordStrength = 0; // 0–4
 
   private pwSub!: Subscription;
@@ -164,6 +165,15 @@ export class RegisterComponent implements OnDestroy {
 
   navigateToLogin(): void {
     this.router.navigate(['/login']);
+  }
+
+  /* ── Terms & Privacy modal ── */
+  openTerms(): void { this.showTerms = true; }
+  closeTerms(): void { this.showTerms = false; }
+  acceptTerms(): void {
+    this.registerForm.get('terms')?.setValue(true);
+    this.registerForm.get('terms')?.markAsTouched();
+    this.showTerms = false;
   }
 
   get f() {

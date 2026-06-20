@@ -16,6 +16,7 @@ Pipeline:
 
 import logging
 import os
+import time
 import cv2
 import numpy as np
 import torch
@@ -27,8 +28,18 @@ _detector = None
 _mivolo_model = None
 _mivolo_config = None
 _image_processor = None
-_init_failed = False
 _device = None
+
+# Init failure cooldown: a transient HuggingFace blip during the very first
+# request used to set a permanent _init_failed flag, silently disabling
+# MiVOLO for the entire life of the process. We now record only the
+# timestamp of the last failure and retry after _INIT_RETRY_AFTER seconds.
+_init_failed_at = 0.0
+_INIT_RETRY_AFTER = 60.0
+
+
+def _init_in_cooldown() -> bool:
+    return _init_failed_at > 0 and (time.time() - _init_failed_at) < _INIT_RETRY_AFTER
 
 
 def _get_device():
@@ -40,12 +51,12 @@ def _get_device():
 
 def _get_detector():
     """Lazy-load YOLOv8 face/person detector."""
-    global _detector, _init_failed
+    global _detector, _init_failed_at
 
-    if _init_failed:
-        return None
     if _detector is not None:
         return _detector
+    if _init_in_cooldown():
+        return None
 
     try:
         from ultralytics import YOLO
@@ -67,22 +78,23 @@ def _get_detector():
         finally:
             torch.load = original_load
         logger.info("YOLOv8 face/person detector loaded: %s", weights_path)
+        _init_failed_at = 0.0
         return _detector
 
     except Exception as e:
         logger.error("Failed to load YOLOv8 detector: %s", e)
-        _init_failed = True
+        _init_failed_at = time.time()
         return None
 
 
 def _get_mivolo():
     """Lazy-load MiVOLO v2 model, config, and image processor."""
-    global _mivolo_model, _mivolo_config, _image_processor, _init_failed
+    global _mivolo_model, _mivolo_config, _image_processor, _init_failed_at
 
-    if _init_failed:
-        return None, None, None
     if _mivolo_model is not None:
         return _mivolo_model, _mivolo_config, _image_processor
+    if _init_in_cooldown():
+        return None, None, None
 
     try:
         from transformers import (
@@ -110,11 +122,12 @@ def _get_mivolo():
         )
 
         logger.info("MiVOLO v2 model loaded on %s", device)
+        _init_failed_at = 0.0
         return _mivolo_model, _mivolo_config, _image_processor
 
     except Exception as e:
         logger.error("Failed to load MiVOLO v2: %s", e)
-        _init_failed = True
+        _init_failed_at = time.time()
         return None, None, None
 
 
@@ -318,6 +331,12 @@ def _run_mivolo_inference(img: np.ndarray, face_boxes, person_boxes):
     emotions = emotion_detector.detect_emotions_batch(face_crops_for_emotion)
     for j, result_dict in enumerate(results):
         result_dict['emotion'] = emotions[j] if j < len(emotions) else 'neutral'
+
+    # Number faces left-to-right (ascending by horizontal position) so the IDs
+    # match the visual order in the image instead of detection/size order.
+    results.sort(key=lambda r: r['bbox']['x'])
+    for idx, result_dict in enumerate(results):
+        result_dict['face_id'] = idx + 1
 
     return results
 

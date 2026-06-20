@@ -1,34 +1,77 @@
-/* ── Layout grids ─────────────────────────── */
-.analytics-top {
+/* ════════════════════════════════════════════════════════
+   ANALYTICS PAGE
+   Layout strategy:
+     • KPI grid: 4 → 2 cols (desktop / tablet)
+     • analytics-grid (2-col): Pair 1 + Pair 2
+         Pair 1: Activity Highlights | Weekly Activity
+         Pair 2: Age Distribution    | Model Usage
+     • analytics-cols (flex row): 3-left | 2-right
+         Left col : Emotion Dist, Gender Dist, Processing Perf
+         Right col: Confidence Dist, Model Performance
+   ──────────────────────────────────────────────────────── */
+
+.page-head {
+  margin-bottom: 18px;
+}
+
+/* ── KPI grid ─────────────────────────────────── */
+.kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 14px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
+  align-items: stretch;            /* cards in a row are equal height */
 }
 
-.analytics-main {
+/* Top-align the icon + content and reserve a consistent 2-line label height so
+   the big numbers line up across the row even when one label wraps
+   ("Avg Predicted Age" = 2 lines) and another doesn't ("Progressions" = 1). */
+.kpi-card .stat-card { align-items: flex-start; }
+.kpi-card .stat-body { min-width: 0; }
+.kpi-card .stat-body p { min-height: 2.6em; margin-bottom: 2px; }
+.kpi-card .stat-body h3 { line-height: 1.05; }
+
+/* ── Main analytics grid ──────────────────────── */
+.analytics-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
-  margin-bottom: 16px;
+  align-items: stretch;          /* paired cards in a row are equal height */
 }
 
-.analytics-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  margin-bottom: 16px;
 
-  &:last-child { margin-bottom: 0; }
+/* ── Card scaffolding (every chart card uses the same skeleton) ──
+   .chart-card  → flex column container
+     ├─ .card-title   → fixed top
+     └─ .card-body    → grows to fill, hosts the content                 */
+.chart-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  contain: layout style;          /* isolates scroll-driven repaints */
 }
 
-/* ── Card title (inside chart cards) ──────── */
 .card-title {
   font-size: 0.92rem;
-  margin-bottom: 10px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+
+  i { color: var(--accent1); }
 }
 
-/* ── Loading ──────────────────────────────── */
+.card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* ── Loading & Empty states ──────────────────── */
 .loading-state {
   display: flex;
   align-items: center;
@@ -39,25 +82,96 @@
   font-size: 0.9rem;
 }
 
-/* ── Empty state ──────────────────────────── */
 .empty-state {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 20px 16px;
+  padding: 24px 16px;
   color: var(--muted);
   text-align: center;
+  gap: 4px;
 
   p { font-size: 0.8rem; margin: 0; }
 }
 
-/* ── Weekly bar chart ─────────────────────── */
+/* ════════════════════════════════════════════════════════
+   ACTIVITY HIGHLIGHTS (Pair 1, left)
+   ──────────────────────────────────────────────────────── */
+.activity-highlight .ah-body {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.ah-big {
+  font-size: 2.6rem;
+  font-weight: 800;
+  line-height: 1;
+  background: linear-gradient(135deg, var(--accent1), var(--accent2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  margin: 4px 0 4px;
+  /* Dedicated GPU layer — stops the gradient text from being repainted on
+     every scroll frame, which used to make the card visually "collapse". */
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.ah-sub {
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 14px;
+}
+
+.ah-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+}
+
+.ah-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 6px;
+  border-radius: 10px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+}
+
+.ah-cell-label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--muted);
+}
+
+.ah-cell-val {
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: "Space Mono", monospace;
+  color: var(--text);
+}
+
+/* ════════════════════════════════════════════════════════
+   WEEKLY ACTIVITY chart (Pair 1, right)
+   ──────────────────────────────────────────────────────── */
 .chart-area {
   display: flex;
   align-items: flex-end;
   gap: 6px;
-  height: 180px;
+  flex: 1;
+  min-height: 180px;
 }
 
 .chart-bar-wrap {
@@ -90,11 +204,14 @@
   font-weight: 600;
 }
 
-/* ── Donut chart ──────────────────────────── */
+/* ════════════════════════════════════════════════════════
+   AGE DISTRIBUTION donut + list (Pair 2, left)
+   ──────────────────────────────────────────────────────── */
 .donut-wrap {
   display: flex;
   justify-content: center;
   margin-bottom: 12px;
+  flex-shrink: 0;
 
   svg {
     width: 140px;
@@ -106,7 +223,7 @@
 .age-dist-list {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 6px;
 }
 
 .age-dist-row {
@@ -138,7 +255,9 @@
   text-align: right;
 }
 
-/* ── Distribution bars (shared) ───────────── */
+/* ════════════════════════════════════════════════════════
+   DISTRIBUTION BAR LISTS (Emotion / Gender / Confidence + sub-sections)
+   ──────────────────────────────────────────────────────── */
 .dist-bar-list {
   display: flex;
   flex-direction: column;
@@ -166,23 +285,9 @@
   }
 }
 
-/* ── Model usage sections ─────────────────── */
-.model-section {
-  margin-bottom: 14px;
-
-  &:last-child { margin-bottom: 0; }
-}
-
-.model-section-label {
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--muted);
-  margin-bottom: 8px;
-}
-
-/* ── Processing performance stats ─────────── */
+/* ════════════════════════════════════════════════════════
+   PROCESSING PERFORMANCE (Pair 4, left)
+   ──────────────────────────────────────────────────────── */
 .perf-section {
   padding: 10px 0;
   border-bottom: 1px solid var(--glass-border);
@@ -233,7 +338,9 @@
 .perf-green { color: #2cb67d; }
 .perf-orange { color: #ff8906; }
 
-/* ── Model performance card ───────────────── */
+/* ════════════════════════════════════════════════════════
+   MODEL PERFORMANCE (Pair 4, right)
+   ──────────────────────────────────────────────────────── */
 .model-perf-list {
   display: flex;
   flex-direction: column;
@@ -299,20 +406,91 @@
   color: var(--text);
 }
 
-/* ── Responsive ───────────────────────────── */
-@media (max-width: 1100px) {
-  .analytics-main, .analytics-row { grid-template-columns: 1fr; }
-  .analytics-top { grid-template-columns: repeat(2, 1fr); }
+/* ════════════════════════════════════════════════════════
+   MODEL USAGE (Pair 2, right — stacks 2 sub-sections)
+   ──────────────────────────────────────────────────────── */
+.model-usage-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex: 1;               /* fill all available card-body height */
 }
 
+.model-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;               /* each section shares height equally */
+  padding: 12px 0;
+  border-bottom: 1px solid var(--glass-border);
+
+  &:first-child { padding-top: 0; }
+  &:last-child { border-bottom: none; padding-bottom: 0; }
+}
+
+.model-section-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+}
+
+/* ════════════════════════════════════════════════════════
+   BOTTOM ASYMMETRIC SECTION (3-left | 2-right columns)
+   ──────────────────────────────────────────────────────── */
+.analytics-cols {
+  display: flex;
+  gap: 14px;
+  align-items: stretch;
+  margin-top: 14px;
+}
+
+.analytics-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+}
+
+.analytics-col > .chart-card {
+  flex: 1;       /* cards in a column share height equally */
+}
+
+/* ════════════════════════════════════════════════════════
+   RESPONSIVE
+   ──────────────────────────────────────────────────────── */
+
+/* Tablet — single column for paired rows, KPIs go 2×2 */
+@media (max-width: 1024px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .analytics-grid { grid-template-columns: 1fr; }
+  .analytics-cols { flex-direction: column; }
+}
+
+/* Mobile — tighter gaps, smaller chart, smaller donut, simpler model perf grid */
 @media (max-width: 480px) {
-  .analytics-top { grid-template-columns: 1fr 1fr; gap: 8px; }
-  .analytics-main, .analytics-row { gap: 10px; margin-bottom: 12px; }
-  .chart-area { height: 140px; gap: 2px; }
+  .page-head { margin-bottom: 14px; }
+  .kpi-grid { gap: 8px; margin-bottom: 10px; }
+  .analytics-grid { gap: 10px; }
+  .ah-big { font-size: 2.2rem; }
+  .ah-grid { gap: 6px; }
+  .chart-area { min-height: 140px; gap: 3px; }
   .chart-label { font-size: 0.5rem; }
   .donut-wrap svg { width: 110px; height: 110px; }
   .age-dist-row { gap: 6px; padding: 4px 0; }
   .adr-label { font-size: 0.68rem; width: 40px; }
   .adr-val { font-size: 0.68rem; width: 36px; }
   .model-perf-metrics { grid-template-columns: repeat(2, 1fr); }
+  .perf-stats { gap: 6px; flex-wrap: wrap; }
+  .perf-stat-value { font-size: 0.78rem; }
+  /* Activity Highlights mini-stats: keep an even 2×2 so cells don't misalign. */
+  .ah-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Very small phones — collapse remaining multi-column grids to one column. */
+@media (max-width: 360px) {
+  .kpi-grid { grid-template-columns: 1fr; }
+  .model-perf-metrics { grid-template-columns: 1fr; }
 }

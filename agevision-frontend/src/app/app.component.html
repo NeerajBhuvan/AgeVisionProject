@@ -16,44 +16,19 @@
 
 <!-- Main App Shell -->
 <ng-container *ngIf="!isAuthPage">
-  <div id="sidebar-overlay"
-       [class.show]="sidebarOpen"
-       (click)="closeSidebar()"></div>
   <div id="app">
+    <!-- Overlay must live INSIDE #app so it shares its stacking context (isolation: isolate).
+         Otherwise the overlay's backdrop-filter blurs the entire #app — including the sidebar. -->
+    <div id="sidebar-overlay"
+         [class.show]="sidebarOpen"
+         (click)="closeSidebar()"></div>
     <app-sidebar [isOpen]="sidebarOpen" (closeSidebar)="closeSidebar()"></app-sidebar>
     <div id="main">
-      <app-topbar></app-topbar>
+      <app-topbar [sidebarOpen]="sidebarOpen" (hamburgerClick)="toggleSidebar()"></app-topbar>
       <div id="main-content" [@routeAnimation]="getRouteAnimationData()">
         <router-outlet />
       </div>
     </div>
   </div>
 
-  <!-- Mobile Bottom Nav -->
-  <nav id="bottom-nav">
-    <a routerLink="/dashboard" routerLinkActive="active" class="bnav-item">
-      <span class="bnav-icon"><i class="fa-solid fa-house"></i></span>
-      <span class="bnav-label">Home</span>
-    </a>
-    <a routerLink="/predict" routerLinkActive="active" class="bnav-item">
-      <span class="bnav-icon"><i class="fa-solid fa-microscope"></i></span>
-      <span class="bnav-label">Predict</span>
-    </a>
-    <a routerLink="/batch-predict" routerLinkActive="active" class="bnav-item">
-      <span class="bnav-icon"><i class="fa-solid fa-layer-group"></i></span>
-      <span class="bnav-label">Batch</span>
-    </a>
-    <a routerLink="/progress" routerLinkActive="active" class="bnav-item">
-      <span class="bnav-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
-      <span class="bnav-label">Progress</span>
-    </a>
-    <a routerLink="/history" routerLinkActive="active" class="bnav-item">
-      <span class="bnav-icon"><i class="fa-solid fa-folder-open"></i></span>
-      <span class="bnav-label">History</span>
-    </a>
-    <a routerLink="/analytics" routerLinkActive="active" class="bnav-item">
-      <span class="bnav-icon"><i class="fa-solid fa-chart-bar"></i></span>
-      <span class="bnav-label">Analytics</span>
-    </a>
-  </nav>
 </ng-container>

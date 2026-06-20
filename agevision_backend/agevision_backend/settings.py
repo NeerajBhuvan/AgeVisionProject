@@ -17,17 +17,27 @@ from datetime import timedelta
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Load .env for local config. If the file is absent, load_dotenv is a no-op and
+# values fall back to real environment variables / the defaults below.
+try:
+    from dotenv import load_dotenv
+    load_dotenv(BASE_DIR / '.env')
+except ImportError:
+    pass
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-$w-u165_=gjg-&(605ll1muhoyns_@*pi-gzi8e=7w7!_7-)_g'
+SECRET_KEY = os.environ.get(
+    'SECRET_KEY',
+    'django-insecure-$w-u165_=gjg-&(605ll1muhoyns_@*pi-gzi8e=7w7!_7-)_g'
+)
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 
 # Application definition
@@ -50,6 +60,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -84,18 +95,22 @@ WSGI_APPLICATION = 'agevision_backend.wsgi.application'
 # MongoDB (via PyMongo) is the primary data store for ALL application data:
 #   predictions, progressions, user settings, user profiles, password resets
 
+# SQLITE_PATH optionally relocates the auth DB (users, sessions, JWT blacklist).
+# Defaults to db.sqlite3 in the project dir for the local setup.
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': os.environ.get('SQLITE_PATH', str(BASE_DIR / 'db.sqlite3')),
     }
 }
 
 # MongoDB Configuration (accessed via PyMongo in views)
+MONGO_URI = os.environ.get('MONGO_URI', '')
 MONGODB_CONFIG = {
-    'HOST': 'localhost',
-    'PORT': 27017,
-    'NAME': 'agevision_db',
+    'HOST': os.environ.get('MONGO_HOST', 'localhost'),
+    'PORT': int(os.environ.get('MONGO_PORT', '27017')),
+    'NAME': os.environ.get('MONGO_DB', 'agevision_db'),
+    'URI': MONGO_URI,
 }
 
 
@@ -134,6 +149,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -142,11 +159,23 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 # CORS Settings
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:4200",
-]
+_cors_origins_env = os.environ.get('CORS_ORIGINS', 'http://localhost:4200')
+CORS_ALLOWED_ORIGINS = [o.strip() for o in _cors_origins_env.split(',') if o.strip()]
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
+
+# CSRF trusted origins — needed for the Django admin / forms once the site is
+# served over the public HTTPS domain. Comma-separated, e.g.
+# "https://agevision.example.com". Empty in plain local use.
+_csrf_env = os.environ.get('CSRF_TRUSTED_ORIGINS', '')
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in _csrf_env.split(',') if o.strip()]
+
+# Behind nginx + Cloudflare Tunnel, TLS is terminated upstream and the request
+# reaches Django over HTTP. Trust the forwarded proto/host so request.is_secure()
+# and build_absolute_uri() produce correct https:// URLs (used for media links).
+if os.environ.get('BEHIND_PROXY', 'False') == 'True':
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    USE_X_FORWARDED_HOST = True
 
 
 # REST Framework + JWT
@@ -182,7 +211,7 @@ SIMPLE_JWT = {
 }
 
 
-# Media Files
+# Media Files — stored on local disk and served by Django at /media/.
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
@@ -192,11 +221,14 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
 
 
-# FADING Cloud GPU (Modal)
-# Set this to the Modal web endpoint URL after running:
+# Age PREDICTION runs locally (MiVOLO v2 + YOLOv8 + emotion on CPU) — see
+# agevision_api/mivolo_predictor.py. No cloud endpoint involved.
+
+# Age PROGRESSION (FADING diffusion) is the only GPU-heavy path that still runs
+# on a Modal cloud GPU, because diffusion is impractical on a CPU. Set this to
+# the Modal web endpoint URL after running:
 #   cd agevision_backend/agevision_api/diffusion_aging && modal deploy modal_app.py
-# The deploy command will print the endpoint URL.
-# Can also be set via FADING_MODAL_ENDPOINT environment variable.
+# Can also be set via the FADING_MODAL_ENDPOINT environment variable.
 FADING_MODAL_ENDPOINT = os.environ.get(
     'FADING_MODAL_ENDPOINT',
     'https://neerajbhuvanmnb--agevision-fading-age-face-endpoint.modal.run'

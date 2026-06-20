@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, BehaviorSubject, tap } from 'rxjs';
+import { Observable, BehaviorSubject, tap, map, shareReplay, finalize, throwError } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { NotificationService } from './notification.service';
 
@@ -126,17 +126,32 @@ export class AuthService {
   }
 
   /**
-   * Refresh the access token using the stored refresh token.
+   * Single-flight access-token refresh.
    *
-   * The backend has ROTATE_REFRESH_TOKENS=True, so the response carries a
-   * brand-new refresh token alongside the new access token, and the old
-   * refresh token is blacklisted server-side. We MUST persist the rotated
-   * refresh token immediately — if we keep the old one, the next refresh
-   * call will be rejected (blacklisted) and the user gets logged out.
+   * The backend has ROTATE_REFRESH_TOKENS=True + BLACKLIST_AFTER_ROTATION=True:
+   * each successful refresh issues a NEW refresh token and blacklists the old
+   * one. If several requests 401 at the same time (e.g. the dashboard loads
+   * profile + history + analytics + settings together) and each fires its own
+   * refresh, the first succeeds and the rest send the now-blacklisted token →
+   * they fail with "token expired" while the app stays half-logged-in.
+   *
+   * To prevent that, all concurrent callers share ONE in-flight refresh request
+   * (shareReplay). `refresh$` is cleared when it settles so the next expiry
+   * starts a fresh refresh.
    */
-  refreshToken(): Observable<{ access: string; refresh?: string }> {
+  private refresh$: Observable<string> | null = null;
+
+  refreshAccessToken(): Observable<string> {
+    if (this.refresh$) {
+      return this.refresh$;
+    }
+
     const refresh = this.getRefreshToken();
-    return this.http
+    if (!refresh) {
+      return throwError(() => new Error('No refresh token'));
+    }
+
+    this.refresh$ = this.http
       .post<{ access: string; refresh?: string }>(
         `${this.baseUrl}/auth/token/refresh/`,
         { refresh }
@@ -147,8 +162,13 @@ export class AuthService {
           if (res.refresh) {
             localStorage.setItem(this.REFRESH_KEY, res.refresh);
           }
-        })
+        }),
+        map(res => res.access),
+        shareReplay(1),
+        finalize(() => { this.refresh$ = null; })
       );
+
+    return this.refresh$;
   }
 
   /** Logout — clear everything and navigate to login */
@@ -257,6 +277,13 @@ export class AuthService {
       return `${user.first_name} ${user.last_name || ''}`.trim();
     }
     return user.username;
+  }
+
+  /** Role label from the user profile. Open-source app — no paid plans. */
+  getRoleLabel(): string {
+    const user = this.currentUserSubject.value;
+    if (!user) return 'Guest';
+    return user.is_admin ? 'Administrator' : 'User';
   }
 
   /* ── Private helpers ── */

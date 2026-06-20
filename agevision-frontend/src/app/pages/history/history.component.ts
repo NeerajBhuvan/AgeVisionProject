@@ -5,6 +5,7 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { ApiService } from '../../services/api.service';
 import { TimezoneService } from '../../services/timezone.service';
+import { SettingsService } from '../../services/settings.service';
 
 interface HistoryItem {
   id: number;
@@ -57,8 +58,11 @@ export class HistoryComponent implements OnInit, OnDestroy {
   constructor(
     private api: ApiService,
     private tz: TimezoneService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private settingsService: SettingsService
   ) {}
+
+  get showConfidence(): boolean { return this.settingsService.showConfidence; }
 
   ngOnInit(): void {
     this.loadHistory();

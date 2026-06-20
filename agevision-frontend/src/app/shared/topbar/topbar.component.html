@@ -1,7 +1,14 @@
 <header id="topbar">
+  <!-- Hamburger (mobile only) -->
+  <button class="hamburger-btn" [class.open]="sidebarOpen" (click)="hamburgerClick.emit()" aria-label="Menu">
+    <span class="hb-bar"></span>
+    <span class="hb-bar"></span>
+    <span class="hb-bar"></span>
+  </button>
+
   <!-- Page Title -->
   <div class="topbar-title">
-    {{ pageTitle().title }} <span class="topbar-sub">— {{ pageTitle().subtitle }}</span>
+    {{ pageTitle().title }}
   </div>
 
   <!-- Spacer -->

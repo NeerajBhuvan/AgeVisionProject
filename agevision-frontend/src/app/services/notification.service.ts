@@ -10,6 +10,10 @@ export class NotificationService {
   /** Per-user storage key — null when no user is logged in */
   private currentScopeKey: string | null = null;
 
+  /** When false (user disabled in-app notifications), push() is a no-op. */
+  private enabled = true;
+  setEnabled(value: boolean): void { this.enabled = value; }
+
   private notificationsSubject = new BehaviorSubject<AppNotification[]>([]);
   public notifications$ = this.notificationsSubject.asObservable();
 
@@ -58,6 +62,9 @@ export class NotificationService {
 
   /** Add a notification and show a toast */
   push(type: NotificationType, title: string, message: string, options?: { icon?: string; route?: string }): void {
+    // Respect the user's "in-app notifications" preference.
+    if (!this.enabled) return;
+
     const notification: AppNotification = {
       id: this.generateId(),
       type,

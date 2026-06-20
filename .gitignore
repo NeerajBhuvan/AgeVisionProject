@@ -54,6 +54,10 @@ results/
 *_token.txt
 *.secret
 credentials*.json
+# Cloud Run env file holds the real SECRET_KEY + Mongo password — never commit
+cloudrun-env.yaml
+# Local-demo env file (Modal endpoints + local secrets)
+.env.local
 
 # Large binary files
 *.zip
@@ -70,6 +74,12 @@ agevision_complete.html
 # Datasets
 agevision_backend/datasets/
 datasets/
+
+# Django collectstatic output — regenerate with: manage.py collectstatic
+agevision_backend/staticfiles/
+
+# WinSW service wrapper binary (re-downloadable third-party exe); keep .xml/.bat
+service/*.exe
 
 # Pip install artifacts
 =*

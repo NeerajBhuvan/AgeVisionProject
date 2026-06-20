@@ -13,9 +13,14 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
-from ..mongodb import MongoPredictionManager, MongoBatchPredictionManager
+from ..mongodb import (
+    MongoPredictionManager,
+    MongoBatchPredictionManager,
+    MongoUserSettingsManager,
+)
 from ..serializers import PredictionSerializer
 from ..age_predictor import predict_group_faces, predict_frame
+from .. import storage
 
 # Per-image cap for batch uploads. Larger files are rejected with an
 # error entry rather than killing the whole batch.
@@ -24,6 +29,14 @@ BATCH_MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 # Hard cap on number of images in a single batch to keep request memory
 # bounded and prevent abuse. Frontend enforces the same limit.
 BATCH_MAX_IMAGES = 20
+
+
+def _save_to_history(user_id) -> bool:
+    """Whether this user wants predictions persisted to their history."""
+    try:
+        return MongoUserSettingsManager.get_or_create(user_id).get('save_to_history', True)
+    except Exception:
+        return True  # never block a prediction on a settings lookup failure
 
 
 def _to_native(val):
@@ -71,23 +84,16 @@ def predict_view(request):
         faces_data = result.pop('faces', [])
         processing_time = (time.time() - start_time) * 1000
 
-        # Save to predictions directory
-        predictions_dir = os.path.join(settings.MEDIA_ROOT, 'predictions')
-        os.makedirs(predictions_dir, exist_ok=True)
+        # Save into local media storage.
         save_name = f"{uuid.uuid4().hex}{ext}"
-        save_path = os.path.join(predictions_dir, save_name)
-
-        image.seek(0)
-        with open(save_path, 'wb+') as f:
-            for chunk in image.chunks():
-                f.write(chunk)
-
         image_relative_path = f"predictions/{save_name}"
+        image.seek(0)
+        storage.save_media(image, image_relative_path)
 
         ensemble_ages_raw = result.get('ensemble_ages', [])
         ensemble_ages_clean = [_to_native(a) for a in ensemble_ages_raw] if ensemble_ages_raw else []
 
-        record = MongoPredictionManager.create(
+        record_fields = dict(
             user_id=request.user.id,
             image_path=image_relative_path,
             predicted_age=int(result['predicted_age']),
@@ -101,6 +107,13 @@ def predict_view(request):
             ensemble_ages=ensemble_ages_clean,
             age_std=float(_to_native(result.get('age_std', 0.0))),
         )
+
+        # Honor the user's "Save results to history" preference. When off, we
+        # still return the prediction (so they see it) but don't persist it.
+        if _save_to_history(request.user.id):
+            record = MongoPredictionManager.create(**record_fields)
+        else:
+            record = {**record_fields, 'created_at': None}
 
         serializer = PredictionSerializer(record, context={'request': request})
 
@@ -228,11 +241,10 @@ def batch_predict_view(request):
         )
 
     batch_start = time.time()
+    save_hist = _save_to_history(request.user.id)
 
     temp_dir = os.path.join(settings.MEDIA_ROOT, 'temp')
-    predictions_dir = os.path.join(settings.MEDIA_ROOT, 'predictions')
     os.makedirs(temp_dir, exist_ok=True)
-    os.makedirs(predictions_dir, exist_ok=True)
 
     results = []
     total_faces = 0
@@ -280,17 +292,12 @@ def batch_predict_view(request):
                 })
                 continue
 
-            # ── 4. Persist a copy under media/predictions ──────────
+            # ── 4. Persist a copy in local media storage ──
             save_name = f"{uuid.uuid4().hex}{ext}"
-            save_path = os.path.join(predictions_dir, save_name)
-            image.seek(0)
-            with open(save_path, 'wb+') as f:
-                for chunk in image.chunks():
-                    f.write(chunk)
             image_relative_path = f"predictions/{save_name}"
-            image_url = request.build_absolute_uri(
-                f'{settings.MEDIA_URL}{image_relative_path}'
-            )
+            image.seek(0)
+            storage.save_media(image, image_relative_path)
+            image_url = storage.media_url(image_relative_path, request=request)
 
             # ── 5. Sanitize numpy types in face data ───────────────
             cleaned_faces = []
@@ -317,20 +324,21 @@ def batch_predict_view(request):
             ensemble_ages_raw = result.get('ensemble_ages', []) or []
             ensemble_ages_clean = [_to_native(a) for a in ensemble_ages_raw]
             try:
-                MongoPredictionManager.create(
-                    user_id=request.user.id,
-                    image_path=image_relative_path,
-                    predicted_age=primary['predicted_age'],
-                    confidence=primary['confidence'],
-                    gender=primary['gender'],
-                    emotion=primary['emotion'],
-                    race=primary.get('race', 'Unknown'),
-                    face_count=face_count,
-                    processing_time_ms=0.0,  # batch-level only
-                    detector_used=str(result.get('detector_used', 'insightface')),
-                    ensemble_ages=ensemble_ages_clean,
-                    age_std=float(_to_native(result.get('age_std', 0.0))),
-                )
+                if save_hist:
+                    MongoPredictionManager.create(
+                        user_id=request.user.id,
+                        image_path=image_relative_path,
+                        predicted_age=primary['predicted_age'],
+                        confidence=primary['confidence'],
+                        gender=primary['gender'],
+                        emotion=primary['emotion'],
+                        race=primary.get('race', 'Unknown'),
+                        face_count=face_count,
+                        processing_time_ms=0.0,  # batch-level only
+                        detector_used=str(result.get('detector_used', 'mivolo_v2')),
+                        ensemble_ages=ensemble_ages_clean,
+                        age_std=float(_to_native(result.get('age_std', 0.0))),
+                    )
             except Exception:
                 # History persistence failure must not break the batch
                 pass
@@ -359,18 +367,20 @@ def batch_predict_view(request):
 
     processing_time_ms = (time.time() - batch_start) * 1000
 
-    # ── 7. Persist the batch record ───────────────────────────────
-    try:
-        batch_record = MongoBatchPredictionManager.create(
-            user_id=request.user.id,
-            total_images=len(images),
-            total_faces=total_faces,
-            results=results,
-            processing_time_ms=processing_time_ms,
-        )
-        batch_id = batch_record['id']
-    except Exception:
-        batch_id = None
+    # ── 7. Persist the batch record (only if the user keeps history) ──
+    batch_id = None
+    if save_hist:
+        try:
+            batch_record = MongoBatchPredictionManager.create(
+                user_id=request.user.id,
+                total_images=len(images),
+                total_faces=total_faces,
+                results=results,
+                processing_time_ms=processing_time_ms,
+            )
+            batch_id = batch_record['id']
+        except Exception:
+            batch_id = None
 
     return Response({
         'message': f'Batch processed: {len(images)} image(s), {total_faces} face(s) detected',

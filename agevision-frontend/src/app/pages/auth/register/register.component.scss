@@ -76,3 +76,47 @@
     gap: 0;
   }
 }
+
+/* Terms & Privacy modal — left-aligned, scrollable body */
+.terms-modal {
+  position: relative;
+  max-width: 460px;
+  text-align: left;
+  padding: 24px;
+
+  .modal-title { text-align: left; margin-bottom: 4px; padding-right: 32px; }
+}
+
+.terms-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.15s, color 0.15s;
+
+  &:hover { background: rgba(239, 68, 68, 0.12); color: var(--accent4); }
+}
+
+.terms-body {
+  max-height: 50vh;
+  overflow-y: auto;
+  margin: 12px 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--muted);
+
+  strong { color: var(--text); }
+}
